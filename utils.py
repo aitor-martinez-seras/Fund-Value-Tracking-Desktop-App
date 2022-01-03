@@ -1,10 +1,12 @@
 import sqlite3
+from tkinter import *
 
+# Functions related to the database
 
 def query_db(db, query, params=None):
     '''
-
-    :param db: route to the db directory
+    Makes a query to the database
+    :param db: string with the route to the database
     :param query: query in SQL
     :param params: parameters of the SQL query
     :return: result of the query
@@ -19,9 +21,62 @@ def query_db(db, query, params=None):
     return result
 
 
+def create_deposit(db, entries):
+    query = f'''INSERT INTO {entries['fund']} 
+                VALUES (NULL, ?, ?, ?, ?)'''
+    # The value of each participation at the time of the deposit
+    participation_value = entries['deposit'] / entries['participations']
+    parameters = (entries['date'], entries['deposit'], entries['participations'], participation_value)
+    query_db(db, query, parameters)
+    return
+
+
+
 def create_fund_db(db, fund_name):
-    if fund_name == '':
-        return
+    '''
+    Function to create the table of a fund in the database
+    :param db: string with the route to the database
+    :param fund_name: string with the desired name for the table in the database
+    '''
     query = f'CREATE TABLE {fund_name} (Id INTEGER NOT NULL PRIMARY KEY, Fecha	TEXT NOT NULL, Aporte REAL NOT NULL, Participaciones REAL NOT NULL, Valor_participacion REAL NOT NULL)'
-    # parameters = (fund_name)
     query_db(db, query)
+
+
+
+def get_available_funds(db):
+    '''
+    Gets the table names that represent each fund
+    :return: List of strings
+    '''
+    query = "SELECT name FROM sqlite_master WHERE type='table';"
+    query = query_db(db, query)
+    funds = []
+    for element in query:
+        if element[0] != 'sqlite_sequence':
+            funds.append(element[0])
+    return funds
+
+
+# Validation functions
+
+def validate_name(name):
+    '''
+    Checks that the introduced value is nonzero, has no spaces in it and that lenght is not superior to 50
+    :param name: String
+    :return: True if valid
+    '''
+    return (len(name) != 0) and not(' ' in name) and (len(name) < 30)
+
+
+def validate_number(number):
+    return (100000000 > number > 0.0)
+
+
+def validate_date(date):
+    try:
+        year = int(date[:4])
+        month = int(date[5:7])
+        day = int(date[8:])
+    except ValueError:
+        return False
+    return (1950 < year < 2100) and (0 <= month <= 12) and (0 <= day <= 31)
