@@ -42,6 +42,21 @@ def create_fund_db(db, fund_name):
     query_db(db, query)
 
 
+def edit_fund(db, old_name: str, new_name: str):
+    '''
+    Edits the name of a table of the database
+    :param db:
+    :param new_name:
+    :return:
+    '''
+    query = f'ALTER TABLE {old_name} RENAME TO {new_name}'
+    query_db(db, query)
+
+
+def delete_fund_from_db(db, name):
+    query = f'DROP TABLE {name}'
+    query_db(db, query)
+
 
 def get_available_funds(db):
     '''
@@ -59,13 +74,14 @@ def get_available_funds(db):
 
 # Validation functions
 
-def validate_name(name):
-    '''
-    Checks that the introduced value is nonzero, has no spaces in it and that lenght is not superior to 50
+def validate_name(name: str):
+    """
+    Checks that the introduced value is not only numeric, is nonzero,
+has no spaces in it and that length is not superior to 30
     :param name: String
     :return: True if valid
-    '''
-    return (len(name) != 0) and not(' ' in name) and (len(name) < 30)
+    """
+    return (len(name) != 0) and not(' ' in name) and (len(name) < 30) and not name.isnumeric()
 
 
 def validate_number(number):
