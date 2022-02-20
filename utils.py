@@ -1,6 +1,7 @@
 import sqlite3
 from tkinter import *
 
+
 # Functions related to the database
 
 def query_db(db, query, params=None):
@@ -29,7 +30,6 @@ def create_deposit(db, entries):
     parameters = (entries['date'], entries['deposit'], entries['participations'], participation_value)
     query_db(db, query, parameters)
     return
-
 
 
 def create_fund_db(db, fund_name):
@@ -72,6 +72,48 @@ def get_available_funds(db):
     return funds
 
 
+def get_deposits_of_a_fund(db, fund_name, dates=None):
+    """
+    Creates a dict with the deposits that correspond to the fund and that happened between the indicated dates. If
+    no dates are passed, last 15 deposits are retrieved, if 'All' is passed, all the deposits are retrieved
+    :param db:
+    :param fund_name:
+    :param dates:
+    :return:
+    """
+    if dates is None:
+        # FALTA DE AÑADIR QUE EN LA QUERY SOLO COJA LOS ULTIMOS 15
+        query = f"SELECT * FROM {fund_name}"
+    elif dates == 'All':
+        query = f"SELECT * FROM {fund_name}"
+    else:
+        query = f"SELECT * FROM {fund_name} WHERE ____"
+    query = query_db(db, query)
+    deposits = parse_deposits(query)
+    print(deposits)
+    return deposits
+
+
+def parse_deposits(query_object: sqlite3.Cursor) -> dict:
+    """
+    Creates a dict of list where each key is a column of the list is one row of the table
+    :param query_object:
+    :return:
+    """
+    deposits = {
+        'Id': [],
+        'Fecha': [],
+        'Aporte': [],
+        'Participaciones': [],
+    }
+    for element in query_object:
+        deposits['Id'].append(element[0])
+        deposits['Fecha'].append(element[1])
+        deposits['Aporte'].append(element[2])
+        deposits['Participaciones'].append(element[3])
+    return deposits
+
+
 # Validation functions
 
 def validate_name(name: str):
@@ -81,7 +123,7 @@ has no spaces in it and that length is not superior to 30
     :param name: String
     :return: True if valid
     """
-    return (len(name) != 0) and not(' ' in name) and (len(name) < 30) and not name.isnumeric()
+    return (len(name) != 0) and not (' ' in name) and (len(name) < 30) and not name.isnumeric()
 
 
 def validate_number(number):

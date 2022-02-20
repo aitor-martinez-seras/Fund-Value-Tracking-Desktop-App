@@ -31,7 +31,7 @@ class Fund():
         sButton = ttk.Style()
         sButton.configure('my.TButton', font=(self.MAIN_FONT, 12))
         sDrop = ttk.Style()
-        sDrop.configure('my.')
+        sDrop.configure('my.TCombobox', font=(self.MAIN_FONT, 12))
 
         # Frame for operating with the 'Deposits'
         deposit_frame = LabelFrame(self.main_window, text='Operaciones con los aportes a fondos', font=self.LABEL_FONT, labelanchor=N)
@@ -40,7 +40,8 @@ class Fund():
         self.add_deposit_button = ttk.Button(deposit_frame,text='Añadir aporte a fondo', style='my.TButton', command=self.add_deposit_window)
         self.add_deposit_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=20)
         # Edit deposit button
-        self.edit_deposit_button = ttk.Button(deposit_frame, text='Editar aportes realizados a fondo', style='my.TButton')
+        self.edit_deposit_button = ttk.Button(deposit_frame, text='Editar aportes realizados a fondo',
+                                              style='my.TButton', command=self.edit_deposit_window)
         self.edit_deposit_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W + E, padx=20, ipadx=20)
         # Delete deposit button
         self.del_deposit_button = ttk.Button(deposit_frame, text='Eliminar aporte realizado a fondo', style='my.TButton')
@@ -100,7 +101,7 @@ class Fund():
         participations_entry = Entry(window, width=self.ENTRY_WIDTH)
         participations_entry.grid(row=3, column=1, padx=self.ENTRY_PADX, sticky=W)
         # Save button
-        create_button = ttk.Button(window, text='Crear fondo', style='my.TButton',
+        create_button = ttk.Button(window, text='Añadir aporte', style='my.TButton',
                                    command=lambda: self.add_deposit(window, date_entry, drop_entry, deposit_entry,participations_entry))
         create_button.grid(row=4, columnspan=2, ipadx=50, pady=20)
 
@@ -120,7 +121,7 @@ class Fund():
         if validate_date(date) and validate_name(fund) and validate_number(deposit) and validate_number(participations):
             create_deposit(self.DB, {'date': date, 'fund': fund, 'deposit':deposit, 'participations':participations})
             mensaje['fg'] = 'green'
-            mensaje['text'] = 'Fondo creado correctamente, la ventana se va a cerrar automaticamente'
+            mensaje['text'] = 'Aporte creado correctamente, la ventana se va a cerrar automaticamente'
             window.after(3000, window.destroy)
         else:
             mensaje['fg'] = 'red'
@@ -128,11 +129,77 @@ class Fund():
             deposit_entry.delete(0, END)
             participations_entry.delete(0, END)
 
+    def edit_deposit_window(self):
+        """
+
+        :return:
+        """
+        window = self.new_window('Editar aporte a fondo')
+        # Frame to select the fund and refresh the view
+        fund_frame = Frame(window)
+        fund_frame.grid(row=0, column=0, columnspan=2,padx=5, pady=5)
+        # Dropdown menu to select the fund to be visualized
+        drop_label = Label(fund_frame, text='Seleccione el fondo al que ingresar: ', font=self.LABEL_FONT)
+        drop_label.grid(row=0, column=0, padx=self.ENTRY_PADX, sticky=W)
+        drop_entry = self.dropdown_menu(fund_frame)
+        drop_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
+
+        # Create the frame for the visualizations
+        table_frame = Frame(window)
+        table_frame.grid(row=1, column=0, rowspan=10,columnspan=2, padx=5, pady=5)
+        # Scrollbar
+        vscroll = Scrollbar(table_frame)
+        vscroll.grid(row=1, rowspan=10, column=0, sticky=N+S)
+        #hscroll = Scrollbar(table_frame, orient='horizontal')
+        #hscroll.grid(row=0, column=2, sticky=N+S)
+        # Create the table object that represents the deposits of the selected fund
+        table_list = ttk.Treeview(table_frame, yscrollcommand=vscroll.set, )
+        table_list.grid(row=1, column=0, columnspan=3, padx=5)
+        # Config the scrolls
+        vscroll.config(command=table_list.yview)
+        #game_scroll.config(command=my_game.xview)
+
+        # Bind the dropdown menu to refresh the table everytime its value changes
+        drop_entry.bind(
+            "<<ComboboxSelected>>",
+            lambda event, args=(drop_entry, table_list): self.on_combo_click(event, args)
+        )
+
+    def on_combo_click(self, event, args):
+        drop_entry, table_frame = args
+        # Call the function that prints the deposits of the selected fund
+        self.visualize_table(drop_entry.get(),table_frame)
+
+    def visualize_table(self, fund_name, table_list, dates=None):
+        """
+        Function that prints the values of a fund in the
+        :return:
+        """
+        # Add the values to the table
+        deposits = get_deposits_of_a_fund(self.DB, fund_name)
+        columns = [x for x in deposits.keys()]
+        table_list['columns'] = columns
+        # Format columns
+        print(columns)
+        table_list.column("#0", width=0,  stretch=NO)
+        table_list.column(columns[0], anchor=CENTER, width=80)
+        table_list.column(columns[1], anchor=CENTER, width=80)
+        table_list.column(columns[2], anchor=CENTER, width=80)
+        table_list.column(columns[3], anchor=CENTER, width=80)
+        # Headings of the columns
+        table_list.heading("#0", text="", anchor=CENTER)
+        table_list.heading(columns[0], text=columns[0], anchor=CENTER)
+        table_list.heading(columns[1], text=columns[1], anchor=CENTER)
+        table_list.heading(columns[2], text=columns[2], anchor=CENTER)
+        table_list.heading(columns[3], text=columns[3], anchor=CENTER)
+        
+
+
     def add_fund_window(self):
-        '''
+        """
         Creates the window for adding a Fund to the database
         :return:
-        '''
+        """
         window = self.new_window('Añadir aporte a fondo')
         # Label and entry to write the name
         name_label = Label(window, text='Introduzca el nombre del fondo: ',font=self.LABEL_FONT)
@@ -244,7 +311,8 @@ class Fund():
         :param window: Tk or TopLevel instance
         :return: dropdown menu
         '''
-        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values(drop), values=[], state='readonly')
+        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values(drop),
+                            values=[], state='readonly', style='my.TCombobox')
         return drop
 
     def set_combobox_values(self,combobox):
