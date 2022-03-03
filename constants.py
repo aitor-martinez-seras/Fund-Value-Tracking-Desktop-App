@@ -1,0 +1,1 @@
+DB_COLUMNS = ["Id", 'Fecha', 'Aporte', 'Participaciones', 'Valor participacion']

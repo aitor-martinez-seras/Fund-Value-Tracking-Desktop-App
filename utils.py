@@ -1,4 +1,5 @@
 import sqlite3
+from constants import *
 from tkinter import *
 
 
@@ -38,7 +39,8 @@ def create_fund_db(db, fund_name):
     :param db: string with the route to the database
     :param fund_name: string with the desired name for the table in the database
     '''
-    query = f'CREATE TABLE {fund_name} (Id INTEGER NOT NULL PRIMARY KEY, Fecha	TEXT NOT NULL, Aporte REAL NOT NULL, Participaciones REAL NOT NULL, Valor_participacion REAL NOT NULL)'
+    query = f'CREATE TABLE {fund_name} ({DB_COLUMNS[0]} INTEGER NOT NULL PRIMARY KEY, {DB_COLUMNS[1]}	TEXT NOT NULL, ' \
+            f'{DB_COLUMNS[2]} REAL NOT NULL, {DB_COLUMNS[3]} REAL NOT NULL, {DB_COLUMNS[4]} REAL NOT NULL)'
     query_db(db, query)
 
 
@@ -100,17 +102,24 @@ def parse_deposits(query_object: sqlite3.Cursor) -> dict:
     :param query_object:
     :return:
     """
+    '''
     deposits = {
         'Id': [],
         'Fecha': [],
         'Aporte': [],
         'Participaciones': [],
+        'Valor_participacion': []
     }
     for element in query_object:
         deposits['Id'].append(element[0])
         deposits['Fecha'].append(element[1])
         deposits['Aporte'].append(element[2])
         deposits['Participaciones'].append(element[3])
+        deposits['Valor_participacion'].append(element[4])
+    '''
+    deposits = []
+    for element in query_object:
+        deposits.append(element)
     return deposits
 
 

@@ -1,3 +1,5 @@
+import tkinter
+
 from utils import *
 from tkinter import *
 from tkinter import ttk
@@ -26,6 +28,9 @@ class Fund():
         self.main_window.title('App de gestion de fondos de inversion')
         self.main_window.resizable(1,1)
         self.main_window.wm_iconbitmap('resources/banco.ico')
+
+        # Variables that are needed for the edit_deposit function
+        self.selected = ()
 
         # Styles
         sButton = ttk.Style()
@@ -135,9 +140,11 @@ class Fund():
         :return:
         """
         window = self.new_window('Editar aporte a fondo')
+        window.geometry('650x450')
         # Frame to select the fund and refresh the view
         fund_frame = Frame(window)
-        fund_frame.grid(row=0, column=0, columnspan=2,padx=5, pady=5)
+        #fund_frame.grid(row=0, column=0, columnspan=2,padx=5, pady=5)
+        fund_frame.pack(pady=5)
         # Dropdown menu to select the fund to be visualized
         drop_label = Label(fund_frame, text='Seleccione el fondo al que ingresar: ', font=self.LABEL_FONT)
         drop_label.grid(row=0, column=0, padx=self.ENTRY_PADX, sticky=W)
@@ -146,54 +153,155 @@ class Fund():
 
         # Create the frame for the visualizations
         table_frame = Frame(window)
-        table_frame.grid(row=1, column=0, rowspan=10,columnspan=2, padx=5, pady=5)
+        #table_frame.grid(row=1, column=0, rowspan=10,columnspan=2, padx=5, pady=5)
+        table_frame.pack()
         # Scrollbar
-        vscroll = Scrollbar(table_frame)
-        vscroll.grid(row=1, rowspan=10, column=0, sticky=N+S)
-        #hscroll = Scrollbar(table_frame, orient='horizontal')
-        #hscroll.grid(row=0, column=2, sticky=N+S)
+        vscroll = Scrollbar(table_frame, orient=tkinter.VERTICAL)
+        vscroll.grid(row=0, rowspan=10, column=5, sticky=N + S)
         # Create the table object that represents the deposits of the selected fund
-        table_list = ttk.Treeview(table_frame, yscrollcommand=vscroll.set, )
-        table_list.grid(row=1, column=0, columnspan=3, padx=5)
+        table_list = ttk.Treeview(table_frame, yscrollcommand=vscroll.set)
+        table_list.grid(row=1, column=0, columnspan=5, padx=5)
         # Config the scrolls
         vscroll.config(command=table_list.yview)
-        #game_scroll.config(command=my_game.xview)
+        # Initialize columns
+        self.initialize_table(table_list)
 
+        # Create the entries where the text is going to be edited
+        boxes_frame = Frame(window)
+        boxes_frame.pack(padx=20,pady=20)
+        # Labels
+        id_l = Label(boxes_frame, text=DB_COLUMNS[0])
+        id_l.grid(row=0, column=0)
+        date_l = Label(boxes_frame, text=DB_COLUMNS[1])
+        date_l.grid(row=0, column=1)
+        deposit_l = Label(boxes_frame, text=DB_COLUMNS[2])
+        deposit_l.grid(row=0, column=2)
+        participation_l = Label(boxes_frame, text=DB_COLUMNS[3])
+        participation_l.grid(row=0, column=3)
+        value_l = Label(boxes_frame, text=DB_COLUMNS[4])
+        value_l.grid(row=0, column=4)
+        # Boxes
+        id_box = Entry(boxes_frame)
+        id_box.grid(row=1, column=0)
+        date_box = Entry(boxes_frame)
+        date_box.grid(row=1, column=1)
+        deposit_box = Entry(boxes_frame)
+        deposit_box.grid(row=1, column=2)
+        participation_box = Entry(boxes_frame)
+        participation_box.grid(row=1, column=3)
+        value_box = Entry(boxes_frame)
+        value_box.grid(row=1, column=4)
+
+        # Buttons section
+        buttons_frame = Frame(window)
+        buttons_frame.pack(pady=5)
+
+        update_button = ttk.Button(
+            buttons_frame, text='Actualizar datos', style='my.TButton',
+            command= lambda: self.update_record(table_list, id_box, date_box, deposit_box, participation_box, value_box)
+        )
+        update_button.grid(row=0, column=0, padx=20)
+
+        clear_button = ttk.Button(
+            buttons_frame, text='Limpiar registros', style='my.TButton',
+            command=lambda: self.clear_entries(id_box, date_box, deposit_box, participation_box, value_box)
+        )
+        clear_button.grid(row=0, column=1, padx=20)
+
+        # Binds
         # Bind the dropdown menu to refresh the table everytime its value changes
         drop_entry.bind(
             "<<ComboboxSelected>>",
             lambda event, args=(drop_entry, table_list): self.on_combo_click(event, args)
         )
+        # Bind the double click to the select record function
+        table_list.bind('<Double-1>',
+                        lambda event, args=(table_list, id_box, date_box, deposit_box, participation_box, value_box):
+                        self.select_record(event, args))
+
+    def update_record(self, table, id_box, date_box, deposit_box, participation_box, value_box):
+
+        table.item(self.selected, text='',
+                   values=(id_box.get(), date_box.get(), deposit_box.get(), participation_box.get(), value_box.get())
+                   )
+
+        # Clear when finished
+        id_box.delete(0, END)
+        date_box.delete(0, END)
+        deposit_box.delete(0, END)
+        participation_box.delete(0, END)
+        value_box.delete(0, END)
+
+    def select_record(self, event, args):
+        table, id_box, date_box, deposit_box, participation_box, value_box = args
+        # Clear previous selection
+        id_box.delete(0, END)
+        date_box.delete(0, END)
+        deposit_box.delete(0, END)
+        participation_box.delete(0, END)
+        value_box.delete(0, END)
+
+        # Grab record number
+        self.selected = table.selection()
+
+        # Grab record values
+        values = table.item(self.selected, 'values')
+        id_box.insert(0, values[0])
+        date_box.insert(0, values[1])
+        deposit_box.insert(0, values[2])
+        participation_box.insert(0, values[3])
+        value_box.insert(0, values[4])
 
     def on_combo_click(self, event, args):
         drop_entry, table_frame = args
         # Call the function that prints the deposits of the selected fund
         self.visualize_table(drop_entry.get(),table_frame)
 
-    def visualize_table(self, fund_name, table_list, dates=None):
+    def clear_entries(self, id_box, date_box, deposit_box, participation_box, value_box):
+        # Clear previous selection
+        id_box.delete(0, END)
+        date_box.delete(0, END)
+        deposit_box.delete(0, END)
+        participation_box.delete(0, END)
+        value_box.delete(0, END)
+
+    def clear_table(self, table: ttk.Treeview):
+        for item in table.get_children():
+            table.delete(item)
+
+    def visualize_table(self, fund_name, table_list: ttk.Treeview, dates=None):
         """
-        Function that prints the values of a fund in the
+        Function that prints the values of a fund in the table
         :return:
         """
+        # Delete previous entries
+        self.clear_table(table_list)
         # Add the values to the table
         deposits = get_deposits_of_a_fund(self.DB, fund_name)
-        columns = [x for x in deposits.keys()]
-        table_list['columns'] = columns
-        # Format columns
-        print(columns)
-        table_list.column("#0", width=0,  stretch=NO)
-        table_list.column(columns[0], anchor=CENTER, width=80)
-        table_list.column(columns[1], anchor=CENTER, width=80)
-        table_list.column(columns[2], anchor=CENTER, width=80)
-        table_list.column(columns[3], anchor=CENTER, width=80)
-        # Headings of the columns
-        table_list.heading("#0", text="", anchor=CENTER)
-        table_list.heading(columns[0], text=columns[0], anchor=CENTER)
-        table_list.heading(columns[1], text=columns[1], anchor=CENTER)
-        table_list.heading(columns[2], text=columns[2], anchor=CENTER)
-        table_list.heading(columns[3], text=columns[3], anchor=CENTER)
-        
+        #columns = [x for x in deposits.keys()]
+        for index, deposit in enumerate(deposits):
+            table_list.insert(parent='', index='end', iid=index, values=deposit)
 
+
+
+    def initialize_table(self, table):
+        # Format columns
+        table['columns'] = DB_COLUMNS
+        table.column("#0", width=0, stretch=NO)
+        table.column(DB_COLUMNS[0], anchor=CENTER, width=40)
+        table.column(DB_COLUMNS[1], anchor=CENTER, width=85)
+        table.column(DB_COLUMNS[2], anchor=CENTER, width=100)
+        table.column(DB_COLUMNS[3], anchor=CENTER, width=100)
+        table.column(DB_COLUMNS[4], anchor=CENTER, width=120)
+        # Headings of the columns
+        table.heading("#0", text='', anchor=W)
+        table.heading(DB_COLUMNS[0], text=DB_COLUMNS[0], anchor=CENTER)
+        table.heading(DB_COLUMNS[1], text=DB_COLUMNS[1], anchor=CENTER)
+        table.heading(DB_COLUMNS[2], text=DB_COLUMNS[2], anchor=CENTER)
+        table.heading(DB_COLUMNS[3], text=DB_COLUMNS[3], anchor=CENTER)
+        table.heading(DB_COLUMNS[4], text=DB_COLUMNS[4], anchor=CENTER)
+        table.tag_configure('oddrow', background='white')
+        table.tag_configure('evenrow', background='cyan')
 
     def add_fund_window(self):
         """
@@ -247,6 +355,13 @@ class Fund():
         create_button.grid(row=3, columnspan=2, ipadx=50, pady=20)
 
     def edit_fund(self, window, drop_entry: ttk.Combobox, name_entry: Entry):
+        '''
+        Wraps the logic of the edit fund window
+        :param window:
+        :param drop_entry:
+        :param name_entry:
+        :return:
+        '''
         mensaje = Label(window, text='')
         mensaje.grid(row=5, columnspan=2, sticky=W + E)
         old_name, new_name = drop_entry.get(), name_entry.get()
