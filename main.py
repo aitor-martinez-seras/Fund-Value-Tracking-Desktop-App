@@ -5,6 +5,7 @@ from tkinter import *
 from tkinter import ttk
 import time
 from tkcalendar import DateEntry
+from collections import abc
 
 class Fund():
     """
@@ -198,7 +199,8 @@ class Fund():
 
         update_button = ttk.Button(
             buttons_frame, text='Actualizar datos', style='my.TButton',
-            command= lambda: self.update_record(table_list, id_box, date_box, deposit_box, participation_box, value_box)
+            command= lambda: self.update_record(window, drop_entry.get(), table_list,
+                                                id_box, date_box, deposit_box, participation_box, value_box, message)
         )
         update_button.grid(row=0, column=0, padx=20)
 
@@ -208,6 +210,12 @@ class Fund():
         )
         clear_button.grid(row=0, column=1, padx=20)
 
+        # Message
+        message_frame = Frame(window)
+        message_frame.pack(pady=10)
+        message = Label(message_frame, text='')
+        message.grid(row=0, column=0, pady=5)
+
         # Binds
         # Bind the dropdown menu to refresh the table everytime its value changes
         drop_entry.bind(
@@ -216,30 +224,66 @@ class Fund():
         )
         # Bind the double click to the select record function
         table_list.bind('<Double-1>',
-                        lambda event, args=(table_list, id_box, date_box, deposit_box, participation_box, value_box):
+                        lambda event, args=(table_list, id_box, date_box,
+                                            deposit_box, participation_box, value_box):
                         self.select_record(event, args))
 
-    def update_record(self, table, id_box, date_box, deposit_box, participation_box, value_box):
+    def update_record(self, window: Toplevel, fund, table: ttk.Treeview, id_box, date_box,
+                      deposit_box, participation_box, value_box, message):
+        """
 
+        :param message:
+        :param table:
+        :param id_box:
+        :param date_box:
+        :param deposit_box:
+        :param participation_box:
+        :param value_box:
+        :return:
+        """
+        try:
+            id, date, deposit, participations, value = id_box.get(), date_box.get(), float(deposit_box.get()), \
+                                                       float(participation_box.get()), float(value_box.get())
+        except ValueError:
+            message['fg'] = 'red'
+            message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido editado'
+            # Clear the message after 1 second
+            window.after(2000, self.delete_message, message)
+            return
+        # To check whether the inputs can be inserted into the database
+        if validate_date(date) and validate_name(fund) and validate_number(deposit) and validate_number(participations):
+            #edit_deposit(self.DB, {'fund': fund, 'id': id, 'date': date, 'deposit': deposit, 'participations': participations, 'value': value})
+            message['fg'] = 'green'
+            message['text'] = 'Aporte editado correctamente'
+        else:
+            message['fg'] = 'red'
+            message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido editado'
+
+        # Clear the message after 1 second
+        window.after(2000, self.delete_message, message)
+
+        # Write new items to the table
         table.item(self.selected, text='',
-                   values=(id_box.get(), date_box.get(), deposit_box.get(), participation_box.get(), value_box.get())
+                   values=(id, date, deposit, participations, value)
                    )
 
-        # Clear when finished
-        id_box.delete(0, END)
-        date_box.delete(0, END)
-        deposit_box.delete(0, END)
-        participation_box.delete(0, END)
-        value_box.delete(0, END)
+        # Clear the boxes after 1 second
+        window.after(1000, self.clear_boxes, id_box, date_box, deposit_box, participation_box, value_box)
+
+    @staticmethod
+    def delete_message(message):
+        message['text'] = ''
+
+    @staticmethod
+    def clear_boxes(*args):
+        for item in args:
+            item.delete(0, END)
 
     def select_record(self, event, args):
         table, id_box, date_box, deposit_box, participation_box, value_box = args
-        # Clear previous selection
-        id_box.delete(0, END)
-        date_box.delete(0, END)
-        deposit_box.delete(0, END)
-        participation_box.delete(0, END)
-        value_box.delete(0, END)
+
+        # Clear boxes
+        self.clear_boxes(id_box, date_box, deposit_box, participation_box, value_box)
 
         # Grab record number
         self.selected = table.selection()
@@ -281,8 +325,6 @@ class Fund():
         #columns = [x for x in deposits.keys()]
         for index, deposit in enumerate(deposits):
             table_list.insert(parent='', index='end', iid=index, values=deposit)
-
-
 
     def initialize_table(self, table):
         # Format columns
