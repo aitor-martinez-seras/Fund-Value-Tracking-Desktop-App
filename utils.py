@@ -1,5 +1,6 @@
 import sqlite3
 from constants import *
+import datetime
 from tkinter import *
 
 
@@ -16,7 +17,7 @@ def query_db(db, query, params=None):
     if params is None:
         params = ()
 
-    with sqlite3.connect(db) as connection:
+    with sqlite3.connect(db, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES) as connection:
         cursor = connection.cursor()
         result = cursor.execute(query, params)
         connection.commit()
@@ -31,6 +32,15 @@ def create_deposit(db, entries):
     parameters = (entries['date'], entries['deposit'], entries['participations'], participation_value)
     query_db(db, query, parameters)
     return
+
+
+def edit_deposit(db, entries):
+    query = f"""UPDATE {entries['fund']}
+    SET Fecha = {entries['date']}, Aporte = {entries['deposit']}, Participaciones = {entries['participations']}, 
+    Valor_participacion = {entries['value']}
+    WHERE Id = {entries['id']}
+    """
+    query_db(db, query)
 
 
 def create_fund_db(db, fund_name):
@@ -139,11 +149,17 @@ def validate_number(number):
     return (100000000 > number > 0.0)
 
 
-def validate_date(date):
+def validate_date(date: datetime.date):
     try:
-        year = int(date[:4])
-        month = int(date[5:7])
-        day = int(date[8:])
+        return (1950 < date.year < 2100) and (0 <= date.month <= 12) and (0 <= date.day <= 31)
+    except (ValueError, AttributeError) :
+        return False
+
+def parse_date_to_datetime(date):
+    try:
+        items_list = date.split('-')
+        date = datetime.date(int(items_list[0]), int(items_list[1]), int(items_list[2]))
+        return date
     except ValueError:
         return False
-    return (1950 < year < 2100) and (0 <= month <= 12) and (0 <= day <= 31)
+

@@ -6,6 +6,7 @@ from tkinter import ttk
 import time
 from tkcalendar import DateEntry
 from collections import abc
+import datetime
 
 class Fund():
     """
@@ -89,7 +90,8 @@ class Fund():
         # Date entry
         date_label = Label(window, text='Introduzca la fecha: ', font=self.LABEL_FONT)
         date_label.grid(row=0, column=0, sticky=W, padx=self.ENTRY_PADX)
-        date_entry = DateEntry(window, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly', width=self.DATE_WIDTH)
+        date_entry = DateEntry(window, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                               width=self.DATE_WIDTH)
         date_entry.grid(row=0, column=1, sticky=W, padx=self.ENTRY_PADX)
         # Dropdown menu
         drop_label = Label(window, text='Seleccione el fondo al que ingresar: ', font=self.LABEL_FONT)
@@ -117,6 +119,9 @@ class Fund():
         # To handle the float conversion error
         try:
             date, fund, deposit, participations = date_entry.get(), drop_entry.get(), float(deposit_entry.get()), float(participations_entry.get())
+            print(date, type(date))
+            date = parse_date_to_datetime(date)
+            print(date, type(date))
         except ValueError:
             mensaje['fg'] = 'red'
             mensaje['text'] = 'Datos introducidos incorrectos, el aporte no ha sido creado'
@@ -182,10 +187,13 @@ class Fund():
         value_l = Label(boxes_frame, text=DB_COLUMNS[4])
         value_l.grid(row=0, column=4)
         # Boxes
-        id_box = Entry(boxes_frame)
+        id_string = StringVar()
+        id_box = Entry(boxes_frame,  textvariable=id_string, state=DISABLED)
         id_box.grid(row=1, column=0)
-        date_box = Entry(boxes_frame)
+        date_box = DateEntry(boxes_frame, selectmode='day', date_pattern='yyyy-mm-dd',
+                             width=self.DATE_WIDTH)
         date_box.grid(row=1, column=1)
+        self.clear_boxes(date_box)
         deposit_box = Entry(boxes_frame)
         deposit_box.grid(row=1, column=2)
         participation_box = Entry(boxes_frame)
@@ -200,16 +208,15 @@ class Fund():
         update_button = ttk.Button(
             buttons_frame, text='Actualizar datos', style='my.TButton',
             command= lambda: self.update_record(window, drop_entry.get(), table_list,
-                                                id_box, date_box, deposit_box, participation_box, value_box, message)
+                                                id_string, date_box, deposit_box, participation_box, value_box, message)
         )
         update_button.grid(row=0, column=0, padx=20)
 
         clear_button = ttk.Button(
             buttons_frame, text='Limpiar registros', style='my.TButton',
-            command=lambda: self.clear_entries(id_box, date_box, deposit_box, participation_box, value_box)
+            command=lambda: self.clear_boxes(id_string, date_box, deposit_box, participation_box, value_box)
         )
         clear_button.grid(row=0, column=1, padx=20)
-
         # Message
         message_frame = Frame(window)
         message_frame.pack(pady=10)
@@ -224,11 +231,33 @@ class Fund():
         )
         # Bind the double click to the select record function
         table_list.bind('<Double-1>',
-                        lambda event, args=(table_list, id_box, date_box,
+                        lambda event, args=(table_list, id_string, date_box,
                                             deposit_box, participation_box, value_box):
                         self.select_record(event, args))
 
-    def update_record(self, window: Toplevel, fund, table: ttk.Treeview, id_box, date_box,
+    def select_record(self, event, args):
+        table, id_string, date_box, deposit_box, participation_box, value_box = args
+
+        # Clear boxes
+        self.clear_boxes(id_string, date_box, deposit_box, participation_box, value_box)
+
+        # Grab record number
+        self.selected = table.selection()
+
+        # Grab record values
+        values = table.item(self.selected, 'values')
+        id_string.set(values[0])
+        date_box.set_date(values[1])
+        deposit_box.insert(0, values[2])
+        participation_box.insert(0, values[3])
+        value_box.insert(0, values[4])
+
+    def on_combo_click(self, event, args):
+        drop_entry, table_frame = args
+        # Call the function that prints the deposits of the selected fund
+        self.visualize_table(drop_entry.get(),table_frame)
+
+    def update_record(self, window: Toplevel, fund, table: ttk.Treeview, id_string, date_box,
                       deposit_box, participation_box, value_box, message):
         """
 
@@ -242,76 +271,40 @@ class Fund():
         :return:
         """
         try:
-            id, date, deposit, participations, value = id_box.get(), date_box.get(), float(deposit_box.get()), \
+            id, date, deposit, participations, value = id_string.get(), date_box.get(), float(deposit_box.get()), \
                                                        float(participation_box.get()), float(value_box.get())
+            print(date, type(date))
+            date = parse_date_to_datetime(date)
+            print(date, type(date))
         except ValueError:
             message['fg'] = 'red'
             message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido editado'
+            correct_data = False
             # Clear the message after 1 second
             window.after(2000, self.delete_message, message)
             return
         # To check whether the inputs can be inserted into the database
         if validate_date(date) and validate_name(fund) and validate_number(deposit) and validate_number(participations):
-            #edit_deposit(self.DB, {'fund': fund, 'id': id, 'date': date, 'deposit': deposit, 'participations': participations, 'value': value})
+            edit_deposit(self.DB, {'fund': fund, 'id': id, 'date': date, 'deposit': deposit, 'participations': participations, 'value': value})
             message['fg'] = 'green'
             message['text'] = 'Aporte editado correctamente'
+            correct_data = True
         else:
             message['fg'] = 'red'
             message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido editado'
+            correct_data = False
 
         # Clear the message after 1 second
         window.after(2000, self.delete_message, message)
 
-        # Write new items to the table
-        table.item(self.selected, text='',
-                   values=(id, date, deposit, participations, value)
+        # Write new items to the table if they were correctly updated
+        if correct_data:
+            table.item(self.selected, text='',
+                       values=(id, date, deposit, participations, value)
                    )
 
         # Clear the boxes after 1 second
-        window.after(1000, self.clear_boxes, id_box, date_box, deposit_box, participation_box, value_box)
-
-    @staticmethod
-    def delete_message(message):
-        message['text'] = ''
-
-    @staticmethod
-    def clear_boxes(*args):
-        for item in args:
-            item.delete(0, END)
-
-    def select_record(self, event, args):
-        table, id_box, date_box, deposit_box, participation_box, value_box = args
-
-        # Clear boxes
-        self.clear_boxes(id_box, date_box, deposit_box, participation_box, value_box)
-
-        # Grab record number
-        self.selected = table.selection()
-
-        # Grab record values
-        values = table.item(self.selected, 'values')
-        id_box.insert(0, values[0])
-        date_box.insert(0, values[1])
-        deposit_box.insert(0, values[2])
-        participation_box.insert(0, values[3])
-        value_box.insert(0, values[4])
-
-    def on_combo_click(self, event, args):
-        drop_entry, table_frame = args
-        # Call the function that prints the deposits of the selected fund
-        self.visualize_table(drop_entry.get(),table_frame)
-
-    def clear_entries(self, id_box, date_box, deposit_box, participation_box, value_box):
-        # Clear previous selection
-        id_box.delete(0, END)
-        date_box.delete(0, END)
-        deposit_box.delete(0, END)
-        participation_box.delete(0, END)
-        value_box.delete(0, END)
-
-    def clear_table(self, table: ttk.Treeview):
-        for item in table.get_children():
-            table.delete(item)
+        window.after(1000, self.clear_boxes, id_string, date_box, deposit_box, participation_box, value_box)
 
     def visualize_table(self, fund_name, table_list: ttk.Treeview, dates=None):
         """
@@ -322,7 +315,6 @@ class Fund():
         self.clear_table(table_list)
         # Add the values to the table
         deposits = get_deposits_of_a_fund(self.DB, fund_name)
-        #columns = [x for x in deposits.keys()]
         for index, deposit in enumerate(deposits):
             table_list.insert(parent='', index='end', iid=index, values=deposit)
 
@@ -344,6 +336,23 @@ class Fund():
         table.heading(DB_COLUMNS[4], text=DB_COLUMNS[4], anchor=CENTER)
         table.tag_configure('oddrow', background='white')
         table.tag_configure('evenrow', background='cyan')
+
+    @staticmethod
+    def delete_message(message):
+        message['text'] = ''
+
+    @staticmethod
+    def clear_boxes(*args):
+        for item in args:
+            try:
+                item.delete(0, END)
+            except AttributeError:
+                item.set('')
+
+    @staticmethod
+    def clear_table(table: ttk.Treeview):
+        for item in table.get_children():
+            table.delete(item)
 
     def add_fund_window(self):
         """
