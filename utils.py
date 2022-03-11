@@ -16,7 +16,8 @@ def query_db(db, query, params=None):
     '''
     if params is None:
         params = ()
-
+    else:
+        assert isinstance(params, (list, tuple))
     with sqlite3.connect(db, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES) as connection:
         cursor = connection.cursor()
         result = cursor.execute(query, params)
@@ -36,11 +37,23 @@ def create_deposit(db, entries):
 
 def edit_deposit(db, entries):
     query = f"""UPDATE {entries['fund']}
-    SET Fecha = {entries['date']}, Aporte = {entries['deposit']}, Participaciones = {entries['participations']}, 
-    Valor_participacion = {entries['value']}
-    WHERE Id = {entries['id']}
-    """
-    query_db(db, query)
+                SET Fecha = ?,
+                    Aporte = ?, 
+                    Participaciones = ?, 
+                    Valor_participacion = ? 
+                WHERE Id = ?"""
+    query_db(db, query, params=(entries['date'], entries['deposit'],
+                                entries['participations'], entries['value'], entries['id']))
+
+
+def delete_record_from_db(db, fund, id_string):
+    query = f"""DELETE FROM {fund} WHERE Id = {id_string}"""
+    try:
+        query_db(db, query)
+        return True
+    except Exception as e:
+        print(f'Ha ocurrido la excepcion {e}')
+        return False
 
 
 def create_fund_db(db, fund_name):
@@ -102,7 +115,6 @@ def get_deposits_of_a_fund(db, fund_name, dates=None):
         query = f"SELECT * FROM {fund_name} WHERE ____"
     query = query_db(db, query)
     deposits = parse_deposits(query)
-    print(deposits)
     return deposits
 
 

@@ -96,8 +96,8 @@ class Fund():
         # Dropdown menu
         drop_label = Label(window, text='Seleccione el fondo al que ingresar: ', font=self.LABEL_FONT)
         drop_label.grid(row=1, column=0, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
-        drop_entry = self.dropdown_menu(window)
-        drop_entry.grid(row=1, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
+        fund_entry = self.dropdown_menu(window)
+        fund_entry.grid(row=1, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
         # Desposit entry
         deposit_label = Label(window, text='Introduzca la cantidad ingresada: ', font=self.LABEL_FONT)
         deposit_label.grid(row=2, column=0, padx=self.ENTRY_PADX, sticky=W)
@@ -110,18 +110,16 @@ class Fund():
         participations_entry.grid(row=3, column=1, padx=self.ENTRY_PADX, sticky=W)
         # Save button
         create_button = ttk.Button(window, text='Añadir aporte', style='my.TButton',
-                                   command=lambda: self.add_deposit(window, date_entry, drop_entry, deposit_entry,participations_entry))
+                                   command=lambda: self.add_deposit(window, date_entry, fund_entry, deposit_entry,participations_entry))
         create_button.grid(row=4, columnspan=2, ipadx=50, pady=20)
 
-    def add_deposit(self,window,date_entry, drop_entry, deposit_entry, participations_entry):
+    def add_deposit(self,window,date_entry, fund_entry, deposit_entry, participations_entry):
         mensaje = Label(window,text='')
         mensaje.grid(row=5, columnspan=2, sticky=W + E)
         # To handle the float conversion error
         try:
-            date, fund, deposit, participations = date_entry.get(), drop_entry.get(), float(deposit_entry.get()), float(participations_entry.get())
-            print(date, type(date))
+            date, fund, deposit, participations = date_entry.get(), fund_entry.get(), float(deposit_entry.get()), float(participations_entry.get())
             date = parse_date_to_datetime(date)
-            print(date, type(date))
         except ValueError:
             mensaje['fg'] = 'red'
             mensaje['text'] = 'Datos introducidos incorrectos, el aporte no ha sido creado'
@@ -154,8 +152,8 @@ class Fund():
         # Dropdown menu to select the fund to be visualized
         drop_label = Label(fund_frame, text='Seleccione el fondo al que ingresar: ', font=self.LABEL_FONT)
         drop_label.grid(row=0, column=0, padx=self.ENTRY_PADX, sticky=W)
-        drop_entry = self.dropdown_menu(fund_frame)
-        drop_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
+        fund_entry = self.dropdown_menu(fund_frame)
+        fund_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
 
         # Create the frame for the visualizations
         table_frame = Frame(window)
@@ -207,7 +205,7 @@ class Fund():
 
         update_button = ttk.Button(
             buttons_frame, text='Actualizar datos', style='my.TButton',
-            command= lambda: self.update_record(window, drop_entry.get(), table_list,
+            command= lambda: self.update_record(window, fund_entry.get(), table_list,
                                                 id_string, date_box, deposit_box, participation_box, value_box, message)
         )
         update_button.grid(row=0, column=0, padx=20)
@@ -217,6 +215,13 @@ class Fund():
             command=lambda: self.clear_boxes(id_string, date_box, deposit_box, participation_box, value_box)
         )
         clear_button.grid(row=0, column=1, padx=20)
+        
+        delete_button = ttk.Button(
+            buttons_frame, text='Borrar registro seleccionado', style='my.TButton',
+            command=lambda: self.delete_record(window, fund_entry.get(), table_list,
+                                                id_string, date_box, deposit_box, participation_box, value_box, message)
+        )
+        delete_button.grid(row=0, column=2, padx=20)
         # Message
         message_frame = Frame(window)
         message_frame.pack(pady=10)
@@ -225,9 +230,9 @@ class Fund():
 
         # Binds
         # Bind the dropdown menu to refresh the table everytime its value changes
-        drop_entry.bind(
+        fund_entry.bind(
             "<<ComboboxSelected>>",
-            lambda event, args=(drop_entry, table_list): self.on_combo_click(event, args)
+            lambda event, args=(fund_entry, table_list): self.on_combo_click(event, args)
         )
         # Bind the double click to the select record function
         table_list.bind('<Double-1>',
@@ -253,9 +258,9 @@ class Fund():
         value_box.insert(0, values[4])
 
     def on_combo_click(self, event, args):
-        drop_entry, table_frame = args
+        fund_entry, table_frame = args
         # Call the function that prints the deposits of the selected fund
-        self.visualize_table(drop_entry.get(),table_frame)
+        self.visualize_table(fund_entry.get(),table_frame)
 
     def update_record(self, window: Toplevel, fund, table: ttk.Treeview, id_string, date_box,
                       deposit_box, participation_box, value_box, message):
@@ -273,9 +278,7 @@ class Fund():
         try:
             id, date, deposit, participations, value = id_string.get(), date_box.get(), float(deposit_box.get()), \
                                                        float(participation_box.get()), float(value_box.get())
-            print(date, type(date))
             date = parse_date_to_datetime(date)
-            print(date, type(date))
         except ValueError:
             message['fg'] = 'red'
             message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido editado'
@@ -285,7 +288,8 @@ class Fund():
             return
         # To check whether the inputs can be inserted into the database
         if validate_date(date) and validate_name(fund) and validate_number(deposit) and validate_number(participations):
-            edit_deposit(self.DB, {'fund': fund, 'id': id, 'date': date, 'deposit': deposit, 'participations': participations, 'value': value})
+            edit_deposit(self.DB, {'fund': fund, 'id': id, 'date': date,
+                                   'deposit': deposit, 'participations': participations, 'value': value})
             message['fg'] = 'green'
             message['text'] = 'Aporte editado correctamente'
             correct_data = True
@@ -305,6 +309,28 @@ class Fund():
 
         # Clear the boxes after 1 second
         window.after(1000, self.clear_boxes, id_string, date_box, deposit_box, participation_box, value_box)
+
+    def delete_record(self, window: Toplevel, fund, table: ttk.Treeview, id_string: StringVar, date_box,
+                      deposit_box, participation_box, value_box, message):
+        try:
+            # Assert id is not empty
+            assert len(id_string.get()) != 0
+            # Delete the record from the DB
+            record_deleted = delete_record_from_db(self.DB, fund, id_string.get())
+            self.visualize_table(fund, table)
+        except AssertionError:
+            print('Campo Id vacío')
+            record_deleted = False
+        # Clear all the boxes after a delay
+        self.clear_boxes(date_box, deposit_box, participation_box, value_box)
+        if record_deleted:
+            message['fg'] = 'green'
+            message['text'] = 'Aporte eliminado correctamente'
+        else:
+            message['fg'] = 'red'
+            message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido eliminado'
+
+
 
     def visualize_table(self, fund_name, table_list: ttk.Treeview, dates=None):
         """
@@ -370,7 +396,6 @@ class Fund():
         create_button = ttk.Button(window, text='Crear fondo', style='my.TButton', command=lambda: self.add_fund(window,name_entry))
         create_button.grid(row=1, columnspan=2, ipadx=self.ENTRY_PADX, pady=5)
 
-
     def add_fund(self, window, name_entry):
         mensaje = Label(window,text='')
         mensaje.grid(row=3, columnspan=2, sticky=W + E)
@@ -393,8 +418,8 @@ class Fund():
         # Dropdown menu
         drop_label = Label(window, text='Seleccione el fondo: ', font=self.LABEL_FONT)
         drop_label.grid(row=0, column=0, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
-        drop_entry = self.dropdown_menu(window)
-        drop_entry.grid(row=0, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
+        fund_entry = self.dropdown_menu(window)
+        fund_entry.grid(row=0, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
         # New name entry
         name_label = Label(window, text='Introduzca el nuevo nombre: ', font=self.LABEL_FONT)
         name_label.grid(row=2, column=0, padx=self.ENTRY_PADX, sticky=W)
@@ -402,20 +427,20 @@ class Fund():
         name_entry.grid(row=2, column=1, padx=self.ENTRY_PADX, sticky=W)
         # Save button
         create_button = ttk.Button(window, text='Validar nuevo nombre', style='my.TButton',
-                                   command=lambda: self.edit_fund(window, drop_entry, name_entry))
+                                   command=lambda: self.edit_fund(window, fund_entry, name_entry))
         create_button.grid(row=3, columnspan=2, ipadx=50, pady=20)
 
-    def edit_fund(self, window, drop_entry: ttk.Combobox, name_entry: Entry):
+    def edit_fund(self, window, fund_entry: ttk.Combobox, name_entry: Entry):
         '''
         Wraps the logic of the edit fund window
         :param window:
-        :param drop_entry:
+        :param fund_entry:
         :param name_entry:
         :return:
         '''
         mensaje = Label(window, text='')
         mensaje.grid(row=5, columnspan=2, sticky=W + E)
-        old_name, new_name = drop_entry.get(), name_entry.get()
+        old_name, new_name = fund_entry.get(), name_entry.get()
         # To check whether the inputs can be inserted into the database
         if validate_name(old_name) and validate_name(new_name):
             edit_fund(self.DB, old_name, new_name)
@@ -435,23 +460,23 @@ class Fund():
         # Dropdown menu
         drop_label = Label(window, text='Seleccione el fondo a eliminar: ', font=self.LABEL_FONT)
         drop_label.grid(row=0, column=0, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
-        drop_entry = self.dropdown_menu(window)
-        drop_entry.grid(row=0, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
+        fund_entry = self.dropdown_menu(window)
+        fund_entry.grid(row=0, column=1, columnspan=2, padx=self.ENTRY_PADX, sticky=W)
         # Save button
         create_button = ttk.Button(window, text='Validar nuevo nombre', style='my.TButton',
-                                   command=lambda: self.delete_fund(window, drop_entry))
+                                   command=lambda: self.delete_fund(window, fund_entry))
         create_button.grid(row=2, columnspan=2, ipadx=80, pady=20, padx=50, sticky=W+E)
 
-    def delete_fund(self, window, drop_entry: ttk.Combobox):
+    def delete_fund(self, window, fund_entry: ttk.Combobox):
         """
 
         :param window:
-        :param drop_entry:
+        :param fund_entry:
         :return:
         """
         mensaje = Label(window, text='')
         mensaje.grid(row=3, columnspan=2, sticky=W + E)
-        fund_name = drop_entry.get()
+        fund_name = fund_entry.get()
         delete_fund_from_db(self.DB, fund_name)
         mensaje['fg'] = 'green'
         mensaje['text'] = 'Fondo eliminado correctamente, la ventana se va a cerrar automaticamente'
