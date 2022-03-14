@@ -1,8 +1,16 @@
 import tkinter
 
+import numpy as np
+
 from utils import *
 from tkinter import *
 from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
+# Implement the default Matplotlib key bindings.
+from matplotlib.backend_bases import key_press_handler
+
 import time
 from tkcalendar import DateEntry
 from collections import abc
@@ -42,7 +50,8 @@ class Fund():
 
         # Frame for operating with the 'Deposits'
         deposit_frame = LabelFrame(self.main_window, text='Operaciones con los aportes a fondos', font=self.LABEL_FONT, labelanchor=N)
-        deposit_frame.grid(row=0, column=0, rowspan=3,columnspan=self.COLUMNSPAN, padx=self.FRAME_PADX, pady=self.FRAME_PADY, sticky=W+E)
+        deposit_frame.pack(pady=10, padx=10)
+        #deposit_frame.grid(row=0, column=0, rowspan=3,columnspan=self.COLUMNSPAN, padx=self.FRAME_PADX, pady=self.FRAME_PADY, sticky=W+E)
         # Add deposit button
         self.add_deposit_button = ttk.Button(deposit_frame,text='Añadir aporte a fondo', style='my.TButton', command=self.add_deposit_window)
         self.add_deposit_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=20)
@@ -56,36 +65,38 @@ class Fund():
 
         # Frame for operating with the 'Visualizations'
         visu_frame = LabelFrame(self.main_window, text='Opciones de visualizacion', font=self.LABEL_FONT, labelanchor=N)
-        visu_frame.grid(row=4, column=0, rowspan=2, columnspan=self.COLUMNSPAN, padx=self.FRAME_PADX, pady=self.FRAME_PADY, sticky=W+E)
+        visu_frame.pack(pady=10)
         # Add deposit button
-        self.profits_button = ttk.Button(visu_frame, text='Rentabilidad total', style='my.TButton')
-        self.profits_button.grid(row=4, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
+        self.profits_button = ttk.Button(visu_frame, text='Rentabilidad total', style='my.TButton',
+                                         command=self.profits_window)
+        self.profits_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
         # Edit deposit button
-        self.profits_per_deposit_button = ttk.Button(visu_frame, text='Rentabilidad por aportacion', style='my.TButton')
-        self.profits_per_deposit_button.grid(row=5, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
+        self.profits_per_fund_button = ttk.Button(visu_frame, text='Rentabilidad por fondo', style='my.TButton')
+        self.profits_per_fund_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
 
         # Frame for operating with 'Funds'
         fund_frame = LabelFrame(self.main_window, text='Operaciones con los fondos', font=self.LABEL_FONT, labelanchor=N)
-        fund_frame.grid(row=6, column=0, rowspan=3, columnspan=self.COLUMNSPAN, padx=self.FRAME_PADX,
-                        pady=self.FRAME_PADY,sticky=W+E)
+        fund_frame.pack(pady=10)
         # Add fund button
         self.add_fund_button = ttk.Button(fund_frame, text='Añadir nuevo fondo', style='my.TButton',
                                           command=self.add_fund_window)
-        self.add_fund_button.grid(row=7, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
+        self.add_fund_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
         # Edit fund button
         self.edit_fund_button = ttk.Button(fund_frame, text='Editar tabla del fondo', style='my.TButton',
                                            command=self.edit_fund_window)
-        self.edit_fund_button.grid(row=8, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20)
+        self.edit_fund_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20)
         # Delete fund button
         self.del_fund_button = ttk.Button(fund_frame, text='Eliminar fondo', style='my.TButton',
                                           command=self.delete_fund_window)
-        self.del_fund_button.grid(row=9, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20)
+        self.del_fund_button.grid(row=2, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20)
+
+    # Functions of the deposit frame #
 
     # Functions of each window
     def add_deposit_window(self):
-        '''
+        """
         Creates the window to add a deposit to the fund
-        '''
+        """
         window = self.new_window('Añadir aporte a fondo')
         # Date entry
         date_label = Label(window, text='Introduzca la fecha: ', font=self.LABEL_FONT)
@@ -319,18 +330,15 @@ class Fund():
             record_deleted = delete_record_from_db(self.DB, fund, id_string.get())
             self.visualize_table(fund, table)
         except AssertionError:
-            print('Campo Id vacío')
             record_deleted = False
         # Clear all the boxes after a delay
-        self.clear_boxes(date_box, deposit_box, participation_box, value_box)
+        self.clear_boxes(id_string, date_box, deposit_box, participation_box, value_box)
         if record_deleted:
             message['fg'] = 'green'
             message['text'] = 'Aporte eliminado correctamente'
         else:
             message['fg'] = 'red'
             message['text'] = 'Datos introducidos incorrectos, el aporte no ha sido eliminado'
-
-
 
     def visualize_table(self, fund_name, table_list: ttk.Treeview, dates=None):
         """
@@ -379,6 +387,64 @@ class Fund():
     def clear_table(table: ttk.Treeview):
         for item in table.get_children():
             table.delete(item)
+
+    # Functions of the visualize frame #
+
+    def profits_window(self):
+        window = self.new_window('Visualización de rentabilidades')
+
+        # Frame for the options of the visualization
+        options_frame = Frame(window)
+        options_frame.pack(padx=20, pady=20)
+        # Fund selection
+        fund_label = Label(options_frame, text='Seleccione el fondo:', font=self.LABEL_FONT)
+        fund_label.grid(row=0, column=0, padx=5, sticky=E)
+        fund_entry = self.dropdown_menu(options_frame)
+        fund_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
+        fund_entry['values'] = ['Todos'] + get_available_funds(self.DB)
+        # Init date
+        init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
+        init_date_label.grid(row=1, column=0, padx=5, sticky=E)
+        init_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                               width=self.DATE_WIDTH)
+        init_date_entry.grid(row=1, column=1, sticky=W, padx=self.ENTRY_PADX)
+        # End date
+        end_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
+        end_date_label.grid(row=2, column=0, padx=5, sticky=E)
+        end_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                                    width=self.DATE_WIDTH)
+        end_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
+
+        # Frame for plotting
+        plot_frame = Frame(window)
+        plot_frame.pack(padx=20, pady=20)
+        # Figure and axes for plotting
+        fig = plt.Figure(figsize=(5, 4), dpi=100)
+        ax = fig.add_subplot(111)
+        canvas = FigureCanvasTkAgg(fig, master=plot_frame)  # A tk.DrawingArea.
+        # Plot button
+        plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
+                                   command=lambda: self.plot_figure(plot_frame, ax, canvas))
+        plot_button.grid(row=3, columnspan=2, ipadx=self.ENTRY_PADX, pady=5)
+
+
+    def plot_figure(self, plot_frame, ax, canvas):
+        t = np.arange(0, 3, .01)
+        ax.plot(t, 2 * np.sin(2 * np.pi * t))
+        self.create_plot(canvas, plot_frame)
+
+
+    @staticmethod
+    def create_plot(canvas, plot_frame):
+
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
+        toolbar = NavigationToolbar2Tk(canvas, plot_frame)
+        toolbar.update()
+        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
+    # Functions of the fund frame #
 
     def add_fund_window(self):
         """
@@ -483,7 +549,8 @@ class Fund():
         window.after(3000, window.destroy)
 
 
-    # Auxiliary functions
+    # Auxiliary functions #
+
     def new_window(self,title=''):
         """
         Creates a new window with the title, resizeable and icon
