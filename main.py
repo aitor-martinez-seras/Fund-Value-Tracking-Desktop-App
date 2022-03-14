@@ -395,7 +395,7 @@ class Fund():
 
         # Frame for the options of the visualization
         options_frame = Frame(window)
-        options_frame.pack(padx=20, pady=20)
+        options_frame.pack(padx=20, pady=30)
         # Fund selection
         fund_label = Label(options_frame, text='Seleccione el fondo:', font=self.LABEL_FONT)
         fund_label.grid(row=0, column=0, padx=5, sticky=E)
@@ -409,7 +409,7 @@ class Fund():
                                width=self.DATE_WIDTH)
         init_date_entry.grid(row=1, column=1, sticky=W, padx=self.ENTRY_PADX)
         # End date
-        end_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
+        end_date_label = Label(options_frame, text='Fecha final:', font=self.LABEL_FONT)
         end_date_label.grid(row=2, column=0, padx=5, sticky=E)
         end_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
                                     width=self.DATE_WIDTH)
@@ -418,31 +418,42 @@ class Fund():
         # Frame for plotting
         plot_frame = Frame(window)
         plot_frame.pack(padx=20, pady=20)
-        # Figure and axes for plotting
-        fig = plt.Figure(figsize=(5, 4), dpi=100)
+        # Figure, axes and toolbar objects creation for plotting
+        fig = plt.Figure(figsize=(6.5, 5), dpi=100)
         ax = fig.add_subplot(111)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)  # A tk.DrawingArea.
-        # Plot button
+        toolbar = NavigationToolbar2Tk(canvas, plot_frame, pack_toolbar=False)
+
+        # Update plot button
         plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
-                                   command=lambda: self.plot_figure(plot_frame, ax, canvas))
+                                   command=lambda: self.plot_figure(ax, canvas, toolbar))
         plot_button.grid(row=3, columnspan=2, ipadx=self.ENTRY_PADX, pady=5)
 
 
-    def plot_figure(self, plot_frame, ax, canvas):
+    def plot_figure(self, ax, canvas, toolbar):
+        """
+        Le falta de añadir un parámetro llamado opcion para elegir el tipo de plot que se quiere crear
+        :param ax:
+        :param canvas:
+        :param toolbar:
+        :return:
+        """
         t = np.arange(0, 3, .01)
         ax.plot(t, 2 * np.sin(2 * np.pi * t))
-        self.create_plot(canvas, plot_frame)
-
+        self.create_plot(canvas, toolbar)
 
     @staticmethod
-    def create_plot(canvas, plot_frame):
-
+    def create_plot(canvas: FigureCanvasTkAgg, toolbar: NavigationToolbar2Tk):
+        """
+        Draws the selected plot and then makes it appear in the GUI along with a interactive toolbar
+        :param canvas: FigureCanvasTkAgg object, that is a tk.DrawingArea
+        :param toolbar: NavigationToolbar2Tk object
+        :return:
+        """
         canvas.draw()
-        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-
-        toolbar = NavigationToolbar2Tk(canvas, plot_frame)
         toolbar.update()
         canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+        toolbar.pack()
 
     # Functions of the fund frame #
 
