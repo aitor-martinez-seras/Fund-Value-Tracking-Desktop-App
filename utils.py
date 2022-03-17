@@ -1,6 +1,9 @@
 import sqlite3
 from constants import *
 import datetime
+import requests
+import random
+from bs4 import BeautifulSoup
 from tkinter import *
 
 
@@ -118,7 +121,7 @@ def get_deposits_of_a_fund(db, fund_name, dates=None):
     return deposits
 
 
-def parse_deposits(query_object: sqlite3.Cursor) -> dict:
+def parse_deposits(query_object: sqlite3.Cursor) -> list:
     """
     Creates a dict of list where each key is a column of the list is one row of the table
     :param query_object:
@@ -175,3 +178,36 @@ def parse_date_to_datetime(date):
     except ValueError:
         return False
 
+
+def get_fund_value(fund_name):
+    """
+    Obtains the value of the fund calling the web scrapping functions
+    :param fund_name: String with the name of the fund, must match one on the dictionary on the constants.py
+    :return: value of one participation of the fund
+    """
+    if fund_name in FUNDS_WEB_PAGES.keys():
+        web_page = FUNDS_WEB_PAGES[fund_name]
+    else:
+        return False
+
+    return
+
+
+def scrape_investing_dot_com(fund_name):
+    """
+    Scrapes investing.com to get the fund value at the moment
+    :param fund_name:
+    :return:
+    """
+    # Future headers may need to be added
+    # This function needs a lot of exception preventing code
+    page = requests.get(
+        "https://es.investing.com/funds/ie00byx5mx67",
+        headers={'User-Agent': random.choice(USER_AGENTS)})
+    soup = BeautifulSoup(page, 'html.parser')
+    fund_value = soup.find(id="last_last").text
+    try:
+        fund_value = float(fund_value)
+    except Exception as e:
+        print(e)
+    return fund_value
