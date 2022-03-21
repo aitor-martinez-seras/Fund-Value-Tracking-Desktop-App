@@ -111,12 +111,20 @@ def get_deposits_of_a_fund(db, fund_name, dates=None):
     """
     if dates is None:
         # FALTA DE AÑADIR QUE EN LA QUERY SOLO COJA LOS ULTIMOS 15
-        query = f"SELECT * FROM {fund_name}"
+        query = f"""
+        SELECT * FROM {fund_name} 
+        ORDER BY Id DESC LIMIT ?
+        """
+        params = 15
     elif dates == 'All':
         query = f"SELECT * FROM {fund_name}"
+        params = None
     else:
-        query = f"SELECT * FROM {fund_name} WHERE ____"
-    query = query_db(db, query)
+        query = f"""
+        SELECT * FROM {fund_name}
+        WHERE Fecha BETWEEN ? AND ?"""
+        params = (dates['from'], dates['to'])
+    query = query_db(db, query, params=params)
     deposits = parse_deposits(query)
     return deposits
 

@@ -5,6 +5,7 @@ import numpy as np
 from utils import *
 from tkinter import *
 from tkinter import ttk
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -67,11 +68,11 @@ class Fund():
         visu_frame = LabelFrame(self.main_window, text='Opciones de visualizacion', font=self.LABEL_FONT, labelanchor=N)
         visu_frame.pack(pady=10)
         # Add deposit button
-        self.profits_button = ttk.Button(visu_frame, text='Rentabilidad total', style='my.TButton',
+        self.profits_button = ttk.Button(visu_frame, text='Rentabilidad por aporte', style='my.TButton',
                                          command=self.profits_window)
         self.profits_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
         # Edit deposit button
-        self.profits_per_fund_button = ttk.Button(visu_frame, text='Rentabilidad por fondo', style='my.TButton')
+        self.profits_per_fund_button = ttk.Button(visu_frame, text='Rentabilidad total por fondo', style='my.TButton')
         self.profits_per_fund_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
 
         # Frame for operating with 'Funds'
@@ -348,7 +349,7 @@ class Fund():
         # Delete previous entries
         self.clear_table(table_list)
         # Add the values to the table
-        deposits = get_deposits_of_a_fund(self.DB, fund_name)
+        deposits = get_deposits_of_a_fund(self.DB, fund_name, dates='All')
         for index, deposit in enumerate(deposits):
             table_list.insert(parent='', index='end', iid=index, values=deposit)
 
@@ -395,13 +396,15 @@ class Fund():
 
         # Frame for the options of the visualization
         options_frame = Frame(window)
-        options_frame.pack(padx=20, pady=30)
+        options_frame.pack(padx=20, pady=5)
         # Fund selection
         fund_label = Label(options_frame, text='Seleccione el fondo:', font=self.LABEL_FONT)
         fund_label.grid(row=0, column=0, padx=5, sticky=E)
-        fund_entry = self.dropdown_menu(options_frame)
+        # The last argument of the call is to offer the option to visualize the overall profits
+        fund_entry = self.dropdown_menu(options_frame, 'Todos')
         fund_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
-        fund_entry['values'] = ['Todos'] + get_available_funds(self.DB)
+        funds = get_available_funds(self.DB)
+
         # Init date
         init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
         init_date_label.grid(row=1, column=0, padx=5, sticky=E)
@@ -415,9 +418,15 @@ class Fund():
                                     width=self.DATE_WIDTH)
         end_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
 
+        # Frame for the message
+        message_frame = Frame(window)
+        message_frame.pack(pady=2)
+        message = Label(message_frame, text='')
+        message.grid(row=0, column=0)
+
         # Frame for plotting
         plot_frame = Frame(window)
-        plot_frame.pack(padx=20, pady=20)
+        plot_frame.pack(padx=20, pady=5)
         # Figure, axes and toolbar objects creation for plotting
         fig = plt.Figure(figsize=(6.5, 5), dpi=100)
         ax = fig.add_subplot(111)
@@ -426,11 +435,16 @@ class Fund():
 
         # Update plot button
         plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
-                                   command=lambda: self.plot_figure(ax, canvas, toolbar))
+                                   command=lambda: self.plot_figure(ax, canvas, toolbar,
+                                                                    fund_entry.get(),
+                                                                    dates={'from': init_date_entry.get(),
+                                                                           'to': end_date_entry.get()},
+                                                                    message=message,
+                                                                    option='Per deposit'))
         plot_button.grid(row=3, columnspan=2, ipadx=self.ENTRY_PADX, pady=5)
 
 
-    def plot_figure(self, ax, canvas, toolbar):
+    def plot_figure(self, ax, canvas, toolbar, fund_name, dates, message, option):
         """
         Le falta de añadir un parámetro llamado opcion para elegir el tipo de plot que se quiere crear
         :param ax:
@@ -438,9 +452,57 @@ class Fund():
         :param toolbar:
         :return:
         """
-        t = np.arange(0, 3, .01)
-        ax.plot(t, 2 * np.sin(2 * np.pi * t))
+        # Plotted variable will contain True if the plot can be done, False otherwise
+        if fund_name == "":
+            message['fg'] = 'red'
+            message['text'] = 'No se ha seleccionado un fondo existente'
+            return
+        else:
+            message['text'] = ""
+        if option == 'Per deposit':
+            plotted = self.plot_profits_per_deposit(self.DB, ax, fund_name, dates, percentage=False)
+
+        #t = np.arange(0, 3, .01)
+        #ax.plot(t, 2 * np.sin(2 * np.pi * t))
         self.create_plot(canvas, toolbar)
+
+    # Los metodos estaticos que tengan que ver con pintar igual los meto en otro .py
+    @staticmethod
+    def plot_profits_per_deposit(db, ax: plt.Axes, fund_name, dates, percentage=True):
+        """
+
+        :return:
+        """
+        deposits = get_deposits_of_a_fund(db, fund_name, dates)
+        # If there is less than one deposit, then we can't print nothing
+        if len(deposits) < 1:
+            return False
+        else:
+            # DB structure: Id, Date, Deposit, Participations, Participation value
+            current_fund_value = 5 # Aqui va la funcion que devuelve el valor del fondo
+            value_per_deposit = []
+            dates = []
+
+            if percentage is False:
+                for item in deposits:
+                    value_per_deposit.append(item[2]*(current_fund_value - float(item[4])))
+                    dates.append(item[1])
+            else:
+                for item in deposits:
+                    value_per_deposit.append(current_fund_value - float(item[4]))
+                    dates.append(item[1])
+            print(value_per_deposit)
+            print(dates)
+            ax.bar(dates, value_per_deposit, width=0.4, tick_label=dates)
+            # set ticks every week
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+            # set major ticks format
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+
+            #t = np.arange(0, 3, .01)
+            #im = ax.plot(t, 2 * np.sin(2 * np.pi * t))
+            return True
+
 
     @staticmethod
     def create_plot(canvas: FigureCanvasTkAgg, toolbar: NavigationToolbar2Tk):
@@ -574,23 +636,23 @@ class Fund():
         new_w.resizable(1, 1)
         return new_w
 
-    def dropdown_menu(self, window):
+    def dropdown_menu(self, window, *args):
         '''
         Creates the dropdown menu with the name of the funds
         :param window: Tk or TopLevel instance
         :return: dropdown menu
         '''
-        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values(drop),
+        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values(drop, args),
                             values=[], state='readonly', style='my.TCombobox')
         return drop
 
-    def set_combobox_values(self,combobox):
+    def set_combobox_values(self,combobox, args):
         """
         Sets the passed Combobox values to the funds
         :param combobox: ttk.Combobox object
         :return:
         """
-        combobox['values'] = get_available_funds(self.DB)
+        combobox['values'] = list(args) + get_available_funds(self.DB)
 
 
 if __name__ == '__main__':
