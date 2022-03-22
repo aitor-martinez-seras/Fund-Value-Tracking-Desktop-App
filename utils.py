@@ -5,6 +5,7 @@ import requests
 import random
 from bs4 import BeautifulSoup
 from tkinter import *
+from datetime import datetime
 
 
 # Functions related to the database
@@ -178,6 +179,7 @@ def validate_date(date: datetime.date):
     except (ValueError, AttributeError) :
         return False
 
+
 def parse_date_to_datetime(date):
     try:
         items_list = date.split('-')
@@ -185,6 +187,13 @@ def parse_date_to_datetime(date):
         return date
     except ValueError:
         return False
+
+
+def parse_dates_to_linspace(dates):
+    new_dates = [datetime.strptime(item, '%Y-%m-%d') for item in dates]
+    oldest_date = new_dates[0].timestamp()
+    dates_linspace = [round((item.timestamp() - oldest_date)/(60*60*24), 3) for item in new_dates]
+    return dates_linspace
 
 
 def get_fund_value(fund_name):

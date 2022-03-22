@@ -15,7 +15,7 @@ from matplotlib.backend_bases import key_press_handler
 import time
 from tkcalendar import DateEntry
 from collections import abc
-import datetime
+from datetime import datetime
 
 class Fund():
     """
@@ -351,7 +351,15 @@ class Fund():
         # Add the values to the table
         deposits = get_deposits_of_a_fund(self.DB, fund_name, dates='All')
         for index, deposit in enumerate(deposits):
-            table_list.insert(parent='', index='end', iid=index, values=deposit)
+            table_list.insert(parent='', index='end', iid=index,
+                              values=self.round_numbers_to_n_decimals(deposit, 3))
+
+    @staticmethod
+    def round_numbers_to_n_decimals(deposit_tuple, n):
+        deposit = list(deposit_tuple)
+        deposit[2:] = [round(float(item), n) for item in deposit[2:]]
+        return deposit
+
 
     def initialize_table(self, table):
         # Format columns
@@ -462,8 +470,6 @@ class Fund():
         if option == 'Per deposit':
             plotted = self.plot_profits_per_deposit(self.DB, ax, fund_name, dates, percentage=False)
 
-        #t = np.arange(0, 3, .01)
-        #ax.plot(t, 2 * np.sin(2 * np.pi * t))
         self.create_plot(canvas, toolbar)
 
     # Los metodos estaticos que tengan que ver con pintar igual los meto en otro .py
@@ -479,7 +485,7 @@ class Fund():
             return False
         else:
             # DB structure: Id, Date, Deposit, Participations, Participation value
-            current_fund_value = 5 # Aqui va la funcion que devuelve el valor del fondo
+            current_fund_value = 9.551 # Aqui va la funcion que devuelve el valor del fondo
             value_per_deposit = []
             dates = []
 
@@ -493,15 +499,14 @@ class Fund():
                     dates.append(item[1])
             print(value_per_deposit)
             print(dates)
-            ax.bar(dates, value_per_deposit, width=0.4, tick_label=dates)
+            dates_linspace = parse_dates_to_linspace(dates)
+            ax.bar(dates_linspace, value_per_deposit, width=0.4, tick_label=dates)
             # set ticks every week
             ax.xaxis.set_major_locator(mdates.WeekdayLocator())
             # set major ticks format
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-
-            #t = np.arange(0, 3, .01)
-            #im = ax.plot(t, 2 * np.sin(2 * np.pi * t))
             return True
+
 
 
     @staticmethod
