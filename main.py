@@ -360,7 +360,6 @@ class Fund():
         deposit[2:] = [round(float(item), n) for item in deposit[2:]]
         return deposit
 
-
     def initialize_table(self, table):
         # Format columns
         table['columns'] = DB_COLUMNS
@@ -426,6 +425,20 @@ class Fund():
                                     width=self.DATE_WIDTH)
         end_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
 
+        # Options for the plots
+        # Percent
+        percent_label = Label(options_frame, text='Forma de representación:', font=self.LABEL_FONT)
+        percent_label.grid(row=0, column=2, padx=5, sticky=E)
+        percent_entry = ttk.Combobox(options_frame, values=OPTIONS_FOR_PERCENT, state='readonly', style='my.TCombobox')
+        percent_entry.grid(row=0, column=3, padx=5, ipadx=12, sticky=E)
+        percent_entry.current(0)
+        # Spacing
+        spacing_label = Label(options_frame, text='Espaciado:', font=self.LABEL_FONT)
+        spacing_label.grid(row=1, column=2, padx=5, sticky=E)
+        spacing_entry = ttk.Combobox(options_frame, values=OPTIONS_FOR_SPACING, state='readonly', style='my.TCombobox')
+        spacing_entry.grid(row=1, column=3, padx=5, ipadx=12, sticky=E)
+        spacing_entry.current(0)
+
         # Frame for the message
         message_frame = Frame(window)
         message_frame.pack(pady=2)
@@ -443,16 +456,20 @@ class Fund():
 
         # Update plot button
         plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
-                                   command=lambda: self.plot_figure(ax, canvas, toolbar,
-                                                                    fund_entry.get(),
-                                                                    dates={'from': init_date_entry.get(),
-                                                                           'to': end_date_entry.get()},
-                                                                    message=message,
-                                                                    option='Per deposit'))
-        plot_button.grid(row=3, columnspan=2, ipadx=self.ENTRY_PADX, pady=5)
+                                   command=lambda: self.plot_figure(
+                                                   ax, canvas, toolbar,
+                                                   fund_entry.get(),
+                                                   dates={'from': init_date_entry.get(),
+                                                          'to': end_date_entry.get()},
+                                                   message=message,
+                                                   option='Per deposit',
+                                                   visualization_options ={'percentage': percent_entry.get(),
+                                                                           'spacing': spacing_entry.get()}
+                                                   )
+                                 )
+        plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
 
-
-    def plot_figure(self, ax, canvas, toolbar, fund_name, dates, message, option):
+    def plot_figure(self, ax, canvas, toolbar, fund_name, dates, message, option, visualization_options):
         """
         Le falta de añadir un parámetro llamado opcion para elegir el tipo de plot que se quiere crear
         :param ax:
@@ -468,13 +485,13 @@ class Fund():
         else:
             message['text'] = ""
         if option == 'Per deposit':
-            plotted = self.plot_profits_per_deposit(self.DB, ax, fund_name, dates, percentage=False)
+            plotted = self.plot_profits_per_deposit(self.DB, ax, fund_name, dates, visualization_options)
 
         self.create_plot(canvas, toolbar)
 
     # Los metodos estaticos que tengan que ver con pintar igual los meto en otro .py
     @staticmethod
-    def plot_profits_per_deposit(db, ax: plt.Axes, fund_name, dates, percentage=True):
+    def plot_profits_per_deposit(db, ax: plt.Axes, fund_name, dates, visualization_options=None):
         """
 
         :return:
@@ -489,24 +506,28 @@ class Fund():
             value_per_deposit = []
             dates = []
 
-            if percentage is False:
-                for item in deposits:
-                    value_per_deposit.append(item[2]*(current_fund_value - float(item[4])))
-                    dates.append(item[1])
-            else:
+            if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
                 for item in deposits:
                     value_per_deposit.append(current_fund_value - float(item[4]))
                     dates.append(item[1])
+            else:
+                for item in deposits:
+                    value_per_deposit.append(item[2]*(current_fund_value - float(item[4])))
+                    dates.append(item[1])
             print(value_per_deposit)
             print(dates)
-            dates_linspace = parse_dates_to_linspace(dates)
-            ax.bar(dates_linspace, value_per_deposit, width=0.4, tick_label=dates)
-            # set ticks every week
-            ax.xaxis.set_major_locator(mdates.WeekdayLocator())
-            # set major ticks format
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+            if visualization_options['spacing'] == OPTIONS_FOR_SPACING[1]:
+                dates_linspace = parse_dates_to_linspace(dates)
+                ax.bar(dates_linspace, value_per_deposit, width=0.4, tick_label=dates)
+                # set ticks every week
+                ax.xaxis.set_major_locator(mdates.WeekdayLocator())
+                # set major ticks format
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+            else:
+                # Aqui tengo que poner para plotear igualmente espaciado
+                ax.bar(dates, value_per_deposit, width=0.4)
+                ax.set_xticks(value_per_deposit, rotation=30, ha='right')
             return True
-
 
 
     @staticmethod
@@ -647,13 +668,14 @@ class Fund():
         :param window: Tk or TopLevel instance
         :return: dropdown menu
         '''
-        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values(drop, args),
+        drop = ttk.Combobox(window, postcommand=lambda: self.set_combobox_values_as_funds(drop, args),
                             values=[], state='readonly', style='my.TCombobox')
         return drop
 
-    def set_combobox_values(self,combobox, args):
+    def set_combobox_values_as_funds(self, combobox, args):
         """
         Sets the passed Combobox values to the funds
+        :param args:
         :param combobox: ttk.Combobox object
         :return:
         """

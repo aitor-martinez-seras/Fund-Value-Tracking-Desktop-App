@@ -192,7 +192,7 @@ def parse_date_to_datetime(date):
 def parse_dates_to_linspace(dates):
     new_dates = [datetime.strptime(item, '%Y-%m-%d') for item in dates]
     oldest_date = new_dates[0].timestamp()
-    dates_linspace = [round((item.timestamp() - oldest_date)/(60*60*24), 3) for item in new_dates]
+    dates_linspace = [round((item.timestamp() - oldest_date)/(60*60*24*7*2), 3) for item in new_dates]
     return dates_linspace
 
 

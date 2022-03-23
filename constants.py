@@ -1,4 +1,4 @@
-DB_COLUMNS = ["Id", 'Fecha', 'Aporte', 'Participaciones', 'Valor participacion']
+DB_COLUMNS = ['Id', 'Fecha', 'Aporte', 'Participaciones', 'Valor participacion']
 FUNDS_WEB_PAGES = {
     'Kutxabank_Gestion_Activa': 'https://es.investing.com/funds/kutxabank-gestion-activa-rendimient',
     'MyInvestor_SYP500': 'https://es.investing.com/funds/ie00byx5mx67',
@@ -13,3 +13,5 @@ USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
 ]
+OPTIONS_FOR_PERCENT = ['Porcentaje', 'Valor total']
+OPTIONS_FOR_SPACING = ['Igualmente espaciado', 'Por fechas']
