@@ -3,9 +3,9 @@ import tkinter
 import numpy as np
 
 from utils import *
+from plots import *
 from tkinter import *
 from tkinter import ttk
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -400,7 +400,16 @@ class Fund():
 
     def profits_window(self):
         window = self.new_window('Visualización de rentabilidades')
-
+        # Gets the requested values of the height and width.
+        # window_width = window.winfo_reqwidth()
+        # window_height = window.winfo_reqheight()
+        # Gets both half the screen width/height and window width/height
+        # position_right = int(window.winfo_screenwidth() / 2 - window_width / 2)
+        #position_down = int(window.winfo_screenheight() * 0.2)
+        # Positions the window in the center of the page.
+        #window.geometry("+{}+{}".format(position_right, position_down))
+        # Setting tkinter window size
+        #window.geometry("%dx%d" % (window_width, window_height))
         # Frame for the options of the visualization
         options_frame = Frame(window)
         options_frame.pack(padx=20, pady=5)
@@ -449,7 +458,7 @@ class Fund():
         plot_frame = Frame(window)
         plot_frame.pack(padx=20, pady=5)
         # Figure, axes and toolbar objects creation for plotting
-        fig = plt.Figure(figsize=(6.5, 5), dpi=100)
+        fig = plt.Figure(figsize=(11, 8), dpi=100)
         ax = fig.add_subplot(111)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)  # A tk.DrawingArea.
         toolbar = NavigationToolbar2Tk(canvas, plot_frame, pack_toolbar=False)
@@ -457,7 +466,7 @@ class Fund():
         # Update plot button
         plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
                                    command=lambda: self.plot_figure(
-                                                   ax, canvas, toolbar,
+                                                   fig, ax, canvas, toolbar,
                                                    fund_entry.get(),
                                                    dates={'from': init_date_entry.get(),
                                                           'to': end_date_entry.get()},
@@ -469,9 +478,15 @@ class Fund():
                                  )
         plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
 
-    def plot_figure(self, ax, canvas, toolbar, fund_name, dates, message, option, visualization_options):
+    def plot_figure(self, fig, ax, canvas, toolbar, fund_name, dates, message, option, visualization_options):
         """
-        Le falta de añadir un parámetro llamado opcion para elegir el tipo de plot que se quiere crear
+
+        :param fig:
+        :param dates:
+        :param message:
+        :param option:
+        :param visualization_options:
+        :param fund_name:
         :param ax:
         :param canvas:
         :param toolbar:
@@ -485,63 +500,9 @@ class Fund():
         else:
             message['text'] = ""
         if option == 'Per deposit':
-            plotted = self.plot_profits_per_deposit(self.DB, ax, fund_name, dates, visualization_options)
+            plotted = plot_profits_per_deposit(self.DB, fig, ax, fund_name, dates, visualization_options)
 
-        self.create_plot(canvas, toolbar)
-
-    # Los metodos estaticos que tengan que ver con pintar igual los meto en otro .py
-    @staticmethod
-    def plot_profits_per_deposit(db, ax: plt.Axes, fund_name, dates, visualization_options=None):
-        """
-
-        :return:
-        """
-        deposits = get_deposits_of_a_fund(db, fund_name, dates)
-        # If there is less than one deposit, then we can't print nothing
-        if len(deposits) < 1:
-            return False
-        else:
-            # DB structure: Id, Date, Deposit, Participations, Participation value
-            current_fund_value = 9.551 # Aqui va la funcion que devuelve el valor del fondo
-            value_per_deposit = []
-            dates = []
-
-            if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
-                for item in deposits:
-                    value_per_deposit.append(current_fund_value - float(item[4]))
-                    dates.append(item[1])
-            else:
-                for item in deposits:
-                    value_per_deposit.append(item[2]*(current_fund_value - float(item[4])))
-                    dates.append(item[1])
-            print(value_per_deposit)
-            print(dates)
-            if visualization_options['spacing'] == OPTIONS_FOR_SPACING[1]:
-                dates_linspace = parse_dates_to_linspace(dates)
-                ax.bar(dates_linspace, value_per_deposit, width=0.4, tick_label=dates)
-                # set ticks every week
-                ax.xaxis.set_major_locator(mdates.WeekdayLocator())
-                # set major ticks format
-                ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-            else:
-                # Aqui tengo que poner para plotear igualmente espaciado
-                ax.bar(dates, value_per_deposit, width=0.4)
-                ax.set_xticks(value_per_deposit, rotation=30, ha='right')
-            return True
-
-
-    @staticmethod
-    def create_plot(canvas: FigureCanvasTkAgg, toolbar: NavigationToolbar2Tk):
-        """
-        Draws the selected plot and then makes it appear in the GUI along with a interactive toolbar
-        :param canvas: FigureCanvasTkAgg object, that is a tk.DrawingArea
-        :param toolbar: NavigationToolbar2Tk object
-        :return:
-        """
-        canvas.draw()
-        toolbar.update()
-        canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-        toolbar.pack()
+        create_plot(canvas, toolbar)
 
     # Functions of the fund frame #
 
