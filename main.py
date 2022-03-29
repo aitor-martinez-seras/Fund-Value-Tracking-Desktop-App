@@ -399,7 +399,9 @@ class Fund():
     # Functions of the visualize frame #
 
     def profits_window(self):
+        # Create the window
         window = self.new_window('Visualización de rentabilidades')
+
         # Gets the requested values of the height and width.
         # window_width = window.winfo_reqwidth()
         # window_height = window.winfo_reqheight()
@@ -410,6 +412,7 @@ class Fund():
         #window.geometry("+{}+{}".format(position_right, position_down))
         # Setting tkinter window size
         #window.geometry("%dx%d" % (window_width, window_height))
+
         # Frame for the options of the visualization
         options_frame = Frame(window)
         options_frame.pack(padx=20, pady=5)
@@ -458,7 +461,7 @@ class Fund():
         plot_frame = Frame(window)
         plot_frame.pack(padx=20, pady=5)
         # Figure, axes and toolbar objects creation for plotting
-        fig = plt.Figure(figsize=(11, 8), dpi=100)
+        fig = plt.Figure(figsize=(10, 6), dpi=100)
         ax = fig.add_subplot(111)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)  # A tk.DrawingArea.
         toolbar = NavigationToolbar2Tk(canvas, plot_frame, pack_toolbar=False)

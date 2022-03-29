@@ -196,6 +196,13 @@ def parse_dates_to_linspace(dates):
     return dates_linspace
 
 
+def parse_num_with_commas_for_decimals(num: str):
+    num = num.replace('.','')
+    num = num[::-1].replace(',','.',1)
+    return num[::-1]
+
+# Scrapping functions
+
 def get_fund_value(fund_name):
     """
     Obtains the value of the fund calling the web scrapping functions
@@ -204,13 +211,14 @@ def get_fund_value(fund_name):
     """
     if fund_name in FUNDS_WEB_PAGES.keys():
         web_page = FUNDS_WEB_PAGES[fund_name]
+        fund_value = scrape_investing_dot_com(web_page)
     else:
         return False
 
-    return
+    return fund_value
 
 
-def scrape_investing_dot_com(fund_name):
+def scrape_investing_dot_com(fund_web_page):
     """
     Scrapes investing.com to get the fund value at the moment
     :param fund_name:
@@ -219,12 +227,12 @@ def scrape_investing_dot_com(fund_name):
     # Future headers may need to be added
     # This function needs a lot of exception preventing code
     page = requests.get(
-        "https://es.investing.com/funds/ie00byx5mx67",
+        fund_web_page,
         headers={'User-Agent': random.choice(USER_AGENTS)})
-    soup = BeautifulSoup(page, 'html.parser')
+    soup = BeautifulSoup(page.text, 'html.parser')
     fund_value = soup.find(id="last_last").text
     try:
-        fund_value = float(fund_value)
+        fund_value = float(parse_num_with_commas_for_decimals(fund_value))
     except Exception as e:
         print(e)
     return fund_value

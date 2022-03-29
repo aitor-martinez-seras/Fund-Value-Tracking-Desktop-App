@@ -1,7 +1,7 @@
 DB_COLUMNS = ['Id', 'Fecha', 'Aporte', 'Participaciones', 'Valor participacion']
 FUNDS_WEB_PAGES = {
     'Kutxabank_Gestion_Activa': 'https://es.investing.com/funds/kutxabank-gestion-activa-rendimient',
-    'MyInvestor_SYP500': 'https://es.investing.com/funds/ie00byx5mx67',
+    'MyInvestor': 'https://es.investing.com/funds/ie00byx5mx67',
     'Kutxabank_Baskepensiones': 'https://es.investing.com/funds/kutxabank-bolsa-global-pp',
     'BBVA_Mejores_ideas': 'https://es.investing.com/funds/quality-mejores-ideas-fi',
 }
