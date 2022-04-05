@@ -87,7 +87,7 @@ def delete_fund_from_db(db, name):
     query_db(db, query)
 
 
-def get_available_funds(db):
+def get_available_funds(db) -> list:
     '''
     Gets the table names that represent each fund
     :return: List of strings

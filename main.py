@@ -583,16 +583,44 @@ class Fund():
         plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
 
     def fund_selection(self, funds_to_plot):
-        # TODO: logica del programa -> hago get_available_funds() para obtener los nombres. Los paso a una función que
-        #   recibe la ventana y los nombres en una lista, y por cada elemento de la lista crea un botton checkbox con
-        #   unas propiedades concretas. Finalmente, hay un boton en la parte de abajo de la ventana que permite guardar
-        #   la seleccion (para ello habrá que pasarle los botones de alguna manera), que lo que hace es guardar los
-        #   valores en la lista que hemos pasado y cerrar la ventana.
+        # TODO: Crear una apariencia bonita para la selección de los fondos con el metodo pack
+        # Create new window
         window = self.new_window('Seleccione fondos a visualizar')
-        print(funds_to_plot)
-        button = ttk.Checkbutton(window, text='I agree', onvalue='agree', offvalue='disagree')
-        button.pack()
-        funds_to_plot.append('Se puede')
+        window.geometry('600x400')
+        # Initialize list that will move info between functions
+        list_of_checkbuttons = []
+        list_of_vars = []
+        # Frame for the checkbuttons
+        frame_checkbuttons = Frame(window)
+        frame_checkbuttons.pack(padx=15, pady=15, fill='x')
+        # Creation of the checkbuttons
+        self.create_checkbuttons_from_list(frame_checkbuttons, get_available_funds(self.DB),
+                                           list_of_checkbuttons, list_of_vars)
+        # Frame for the save options button
+        frame_save_button = Frame(window)
+        frame_save_button.pack(padx=15, pady=15)
+        save_button = ttk.Button(frame_save_button, text='Guardar selección', style='my.TButton',
+                                 command=lambda : self.save_fund_selection_options(funds_to_plot,
+                                                                                   list_of_checkbuttons,
+                                                                                   list_of_vars)
+                                 )
+        save_button.pack()
+
+    def create_checkbuttons_from_list(self, frame: Frame, fund_list: list,
+                                      list_of_checkbuttons: list, list_of_vars: list):
+        for item in fund_list:
+            var = tkinter.IntVar()
+            var.set(1)
+            list_of_checkbuttons.append(ttk.Checkbutton(frame, text=item, variable=var))
+            list_of_checkbuttons[-1].pack(padx=5, pady=5, side=tkinter.LEFT)
+            list_of_vars.append(var)
+
+    def save_fund_selection_options(self, funds_to_plot: list, list_of_checkbuttons: list, list_of_vars: list):
+        funds_to_plot = []
+        for index, intvar in enumerate(list_of_vars):
+            if intvar.get() == 1:
+                funds_to_plot.append(list_of_checkbuttons[index].cget('text'))
+
         print(funds_to_plot)
 
 
