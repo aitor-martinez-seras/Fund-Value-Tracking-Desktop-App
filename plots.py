@@ -8,7 +8,7 @@ from utils import get_deposits_of_a_fund, parse_dates_to_linspace, get_fund_valu
 from constants import *
 
 
-def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualization_options=None):
+def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualization_options=None) -> bool:
     """
 
     :return:

@@ -72,7 +72,8 @@ class Fund():
                                          command=self.profits_window)
         self.profits_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
         # Edit deposit button
-        self.profits_per_fund_button = ttk.Button(visu_frame, text='Rentabilidad total por fondo', style='my.TButton')
+        self.profits_per_fund_button = ttk.Button(visu_frame, text='Rentabilidad total por fondo', style='my.TButton',
+                                                  command=self.profits_per_fund_window)
         self.profits_per_fund_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
 
         # Frame for operating with 'Funds'
@@ -502,10 +503,98 @@ class Fund():
             return
         else:
             message['text'] = ""
+        # Check the type of plot to paint
         if option == 'Per deposit':
             plotted = plot_profits_per_deposit(self.DB, fig, ax, fund_name, dates, visualization_options)
+        elif option == 'Fund_value':
+            plotted = None
+        else:
+            message['fg'] = 'red'
+            message['text'] = 'No se ha seleccionado una opción de visualización existente'
+            plotted = False
 
-        create_plot(canvas, toolbar)
+        if plotted is True:
+            create_plot(canvas, toolbar)
+
+    def profits_per_fund_window(self):
+        # Create the window
+        window = self.new_window('Visualización de rentabilidad de cada fondo')
+        # Frame for the options of the visualization
+        options_frame = Frame(window)
+        options_frame.pack(padx=20, pady=5)
+        # Fund selection
+        fund_label = Label(options_frame, text='Seleccione los fondos que quiere visualizar:', font=self.LABEL_FONT)
+        fund_label.grid(row=0, column=0, padx=5, sticky=E)
+        # The last argument of the call is to offer the option to visualize the overall profits
+        funds_to_plot = []
+        fund_selection_button = ttk.Button(options_frame, text='Selección de fondos', style='my.TButton',
+                                 command=lambda: self.fund_selection(funds_to_plot))
+        fund_selection_button.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
+        funds = get_available_funds(self.DB)
+
+        # Init date
+        init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
+        init_date_label.grid(row=1, column=0, padx=5, sticky=E)
+        init_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                               width=self.DATE_WIDTH)
+        init_date_entry.grid(row=1, column=1, sticky=W, padx=self.ENTRY_PADX)
+        # End date
+        end_date_label = Label(options_frame, text='Fecha final:', font=self.LABEL_FONT)
+        end_date_label.grid(row=2, column=0, padx=5, sticky=E)
+        end_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                                    width=self.DATE_WIDTH)
+        end_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
+
+        # Options for the plots
+        # Percent
+        percent_label = Label(options_frame, text='Forma de representación:', font=self.LABEL_FONT)
+        percent_label.grid(row=0, column=2, padx=5, sticky=E)
+        percent_entry = ttk.Combobox(options_frame, values=OPTIONS_FOR_PERCENT, state='readonly', style='my.TCombobox')
+        percent_entry.grid(row=0, column=3, padx=5, ipadx=12, sticky=E)
+        percent_entry.current(0)
+
+        # Frame for the message
+        message_frame = Frame(window)
+        message_frame.pack(pady=2)
+        message = Label(message_frame, text='')
+        message.grid(row=0, column=0)
+
+        # Frame for plotting
+        plot_frame = Frame(window)
+        plot_frame.pack(padx=20, pady=5)
+        # Figure, axes and toolbar objects creation for plotting
+        fig = plt.Figure(figsize=(10, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        canvas = FigureCanvasTkAgg(fig, master=plot_frame)  # A tk.DrawingArea.
+        toolbar = NavigationToolbar2Tk(canvas, plot_frame, pack_toolbar=False)
+
+        # Update plot button
+        plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
+                                 command=lambda: self.plot_figure(
+                                                   fig, ax, canvas, toolbar,
+                                                   funds_to_plot,
+                                                   dates={'from': init_date_entry.get(),
+                                                          'to': end_date_entry.get()},
+                                                   message=message,
+                                                   option='Fund_value',
+                                                   visualization_options ={'percentage': percent_entry.get()}
+                                                   )
+                                 )
+        plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
+
+    def fund_selection(self, funds_to_plot):
+        # TODO: logica del programa -> hago get_available_funds() para obtener los nombres. Los paso a una función que
+        #   recibe la ventana y los nombres en una lista, y por cada elemento de la lista crea un botton checkbox con
+        #   unas propiedades concretas. Finalmente, hay un boton en la parte de abajo de la ventana que permite guardar
+        #   la seleccion (para ello habrá que pasarle los botones de alguna manera), que lo que hace es guardar los
+        #   valores en la lista que hemos pasado y cerrar la ventana.
+        window = self.new_window('Seleccione fondos a visualizar')
+        print(funds_to_plot)
+        button = ttk.Checkbutton(window, text='I agree', onvalue='agree', offvalue='disagree')
+        button.pack()
+        funds_to_plot.append('Se puede')
+        print(funds_to_plot)
+
 
     # Functions of the fund frame #
 
