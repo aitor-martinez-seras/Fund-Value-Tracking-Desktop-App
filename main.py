@@ -507,6 +507,10 @@ class Fund():
         if option == 'Per deposit':
             plotted = plot_profits_per_deposit(self.DB, fig, ax, fund_name, dates, visualization_options)
         elif option == 'Fund_value':
+            # TODO: Ya soy capaz de recibir los nombres, ahora tengo que hacer la funcion que genera el plot, reciclando
+            #   parte del codigo que he creado para la otra funcion de plot. Tengo que tener cuidado con el width del
+            #   plot
+            print(fund_name)
             plotted = None
         else:
             message['fg'] = 'red'
@@ -526,11 +530,10 @@ class Fund():
         fund_label = Label(options_frame, text='Seleccione los fondos que quiere visualizar:', font=self.LABEL_FONT)
         fund_label.grid(row=0, column=0, padx=5, sticky=E)
         # The last argument of the call is to offer the option to visualize the overall profits
-        funds_to_plot = []
+        self.funds_to_plot = []
         fund_selection_button = ttk.Button(options_frame, text='Selección de fondos', style='my.TButton',
-                                 command=lambda: self.fund_selection(funds_to_plot))
+                                 command=self.fund_selection)
         fund_selection_button.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
-        funds = get_available_funds(self.DB)
 
         # Init date
         init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
@@ -572,7 +575,7 @@ class Fund():
         plot_button = ttk.Button(options_frame, text='Visualizar', style='my.TButton',
                                  command=lambda: self.plot_figure(
                                                    fig, ax, canvas, toolbar,
-                                                   funds_to_plot,
+                                                   self.funds_to_plot,
                                                    dates={'from': init_date_entry.get(),
                                                           'to': end_date_entry.get()},
                                                    message=message,
@@ -582,46 +585,44 @@ class Fund():
                                  )
         plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
 
-    def fund_selection(self, funds_to_plot):
-        # TODO: Crear una apariencia bonita para la selección de los fondos con el metodo pack
+    def fund_selection(self):
         # Create new window
         window = self.new_window('Seleccione fondos a visualizar')
-        window.geometry('600x400')
         # Initialize list that will move info between functions
         list_of_checkbuttons = []
         list_of_vars = []
         # Frame for the checkbuttons
         frame_checkbuttons = Frame(window)
-        frame_checkbuttons.pack(padx=15, pady=15, fill='x')
+        frame_checkbuttons.grid(row=0, column=0, columnspan=2, sticky='WE', padx=20, pady=15)
         # Creation of the checkbuttons
         self.create_checkbuttons_from_list(frame_checkbuttons, get_available_funds(self.DB),
                                            list_of_checkbuttons, list_of_vars)
         # Frame for the save options button
         frame_save_button = Frame(window)
-        frame_save_button.pack(padx=15, pady=15)
+        frame_save_button.grid(row=1, column=0, columnspan=2, sticky='WE', padx=20, pady=15)
         save_button = ttk.Button(frame_save_button, text='Guardar selección', style='my.TButton',
-                                 command=lambda : self.save_fund_selection_options(funds_to_plot,
-                                                                                   list_of_checkbuttons,
-                                                                                   list_of_vars)
+                                 command=lambda : self.save_fund_selection_options(list_of_checkbuttons,
+                                                                                   list_of_vars,
+                                                                                   window)
                                  )
-        save_button.pack()
+        save_button.pack(anchor='center')
 
     def create_checkbuttons_from_list(self, frame: Frame, fund_list: list,
                                       list_of_checkbuttons: list, list_of_vars: list):
-        for item in fund_list:
+        for index, item in enumerate(fund_list):
             var = tkinter.IntVar()
             var.set(1)
             list_of_checkbuttons.append(ttk.Checkbutton(frame, text=item, variable=var))
-            list_of_checkbuttons[-1].pack(padx=5, pady=5, side=tkinter.LEFT)
+            list_of_checkbuttons[-1].grid(row=index // 2, column=index % 2, padx=5, pady=5, ipadx=15, sticky='WE')
             list_of_vars.append(var)
 
-    def save_fund_selection_options(self, funds_to_plot: list, list_of_checkbuttons: list, list_of_vars: list):
-        funds_to_plot = []
+    def save_fund_selection_options(self, list_of_checkbuttons: list, list_of_vars: list, window: Toplevel):
         for index, intvar in enumerate(list_of_vars):
             if intvar.get() == 1:
-                funds_to_plot.append(list_of_checkbuttons[index].cget('text'))
+                self.funds_to_plot.append(list_of_checkbuttons[index].cget('text'))
+        print(self.funds_to_plot)
+        window.destroy()
 
-        print(funds_to_plot)
 
 
     # Functions of the fund frame #
