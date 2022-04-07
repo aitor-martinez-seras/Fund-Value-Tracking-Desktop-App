@@ -20,20 +20,22 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
         return False
     else:
         # DB structure: Id, Date, Deposit, Participations, Participation value
-        #current_fund_value = 9.551  # Aqui va la funcion que devuelve el valor del fondo
-        current_fund_value = get_fund_value(fund_name)
-        print(current_fund_value)
+        current_participation_value = get_fund_value(fund_name)
+        print(current_participation_value)
         value_per_deposit = []
         dates = []
 
         if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
             for item in deposits:
-                value_per_deposit.append(((current_fund_value - float(item[4])) / float(item[4])) * 100)
+                # (current_participation_value - Participation_value) = win or loss per participation i.e. the
+                # difference between each participation current value and the value paid for it
+                value_per_deposit.append(((current_participation_value - float(item[4])) / float(item[4])) * 100)
                 dates.append(item[1])
             fig.suptitle('Rentabilidades en procentaje')
         else:
             for item in deposits:
-                value_per_deposit.append(item[2] * ((current_fund_value - float(item[4])) / float(item[4])))
+                # item[2] to mulitply the win or loss per participation with the number of participations
+                value_per_deposit.append(item[2] * ((current_participation_value - float(item[4])) / float(item[4])))
                 dates.append(item[1])
             fig.suptitle('Rentabilidades')
 
@@ -42,13 +44,12 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
 
         if visualization_options['spacing'] == OPTIONS_FOR_SPACING[1]:
             dates_linspace = parse_dates_to_linspace(dates)
-            bar_container = ax.bar(dates_linspace, value_per_deposit, width=0.4, tick_label=dates, color=plot_colors)
+            bar_container = ax.bar(dates_linspace, value_per_deposit, width=0.65, tick_label=dates, color=plot_colors)
             # set ticks every week
             ax.xaxis.set_major_locator(mdates.WeekdayLocator())
             # set major ticks format
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         else:
-            # Aqui tengo que poner para plotear igualmente espaciado
             bar_container = ax.bar(range(len(value_per_deposit)), value_per_deposit, width=0.4, color=plot_colors)
             ax.set_xticks(range(len(value_per_deposit)), labels=dates, rotation=30, ha='right', fontsize='8')
             #ax.set_xticklabels()
@@ -56,14 +57,15 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
         if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
             #add_value_label(ax, dates, value_per_deposit)
             ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
-            ax.bar_label(bar_container,labels=[f'{x:.2f}%' for x in value_per_deposit],
+            ax.bar_label(bar_container, labels=[f'{x:.2f}%' for x in value_per_deposit],
                          label_type='center', rotation=0, fontsize=9)
         else:
             ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
             ax.bar_label(bar_container, labels=[f'{x:.2f}\N{euro sign}' for x in value_per_deposit],
                          label_type='center', rotation=0, fontsize=9)
+        # Plot a horizontal gray bar in the 0 value
         ax.axhline(color='dimgray')
-
+        # Returns True to confirm that the graphic was plotted
         return True
 
 def list_of_colors_for_barplot(values_list) -> list:
@@ -72,7 +74,7 @@ def list_of_colors_for_barplot(values_list) -> list:
         if value < 0:
             color_list.append('firebrick')
         else:
-            color_list.append('limegreen')
+            color_list.append('forestgreen')
     return color_list
 
 
@@ -84,6 +86,55 @@ def major_formatter(x, pos):
 def add_value_label(ax: plt.Axes, x_list, y_list):
     for i in range(1, len(x_list)+1):
         ax.text(i, y_list[i-1]/2, f'{y_list[i-1]:.2f}%', ha="center")
+
+
+def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualization_options=None) -> bool:
+    # Clear plot
+    ax.cla()
+    funds_balances = []
+    for fund in fund_names:
+        deposits = get_deposits_of_a_fund(db, fund, dates)
+        #               [0] [1]      [2]        [3]             [4]
+        # DB structure: Id, Date, Deposit, Participations, Participation value
+        current_participation_value = get_fund_value(fund)
+        print(current_participation_value)
+        money_spent_on_fund = 0.0
+        sum_of_participations = 0.0
+        for item in deposits:
+            money_spent_on_fund += float(item[2])
+            sum_of_participations += float(item[3])
+        # Calculate the fund current value as the number of participations times the current value of one participation
+        fund_current_value = sum_of_participations * current_participation_value
+        balance = fund_current_value - money_spent_on_fund
+        if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
+            # Transform balance into percentage
+            funds_balances.append((balance / money_spent_on_fund) * 100)
+            fig.suptitle('Rentabilidades en procentaje')
+        else:
+            funds_balances.append(balance)
+            fig.suptitle('Rentabilidades')
+    # Create a list with the colors for the plot, green if +, red if -
+    plot_colors = list_of_colors_for_barplot(funds_balances)
+    # Plot
+    bar_container = ax.bar([x for x in range(len(funds_balances))], funds_balances,
+                           width=0.65, tick_label=fund_names, color=plot_colors)
+    # Plot the value inside the bars of the plot, distinguishing between percentage and abs value
+    if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
+        # add_value_label(ax, dates, value_per_deposit)
+        ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
+        ax.bar_label(bar_container, labels=[f'{x:.2f}%' for x in funds_balances],
+                     label_type='center', rotation=0, fontsize=9)
+    else:
+        ax.bar_label(bar_container, labels=[f'{x:.2f}\N{euro sign}' for x in funds_balances],
+                     label_type='center', rotation=0, fontsize=9)
+        ax.title(f'Rentabilidad total entre los {len(funds_balances)} fondos \u2191 {sum(funds_balances)}')
+    # Plot a horizontal gray bar in the 0 value
+    ax.axhline(color='dimgray')
+    # Returns True to confirm that the graphic was plotted
+    return True
+
+
+
 
 
 def create_plot(canvas: FigureCanvasTkAgg, toolbar: NavigationToolbar2Tk):

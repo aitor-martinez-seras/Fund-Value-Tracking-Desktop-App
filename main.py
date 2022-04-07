@@ -54,15 +54,13 @@ class Fund():
         deposit_frame.pack(pady=10, padx=10)
         #deposit_frame.grid(row=0, column=0, rowspan=3,columnspan=self.COLUMNSPAN, padx=self.FRAME_PADX, pady=self.FRAME_PADY, sticky=W+E)
         # Add deposit button
-        self.add_deposit_button = ttk.Button(deposit_frame,text='Añadir aporte a fondo', style='my.TButton', command=self.add_deposit_window)
+        self.add_deposit_button = ttk.Button(deposit_frame,text='Añadir aporte', style='my.TButton', command=self.add_deposit_window)
         self.add_deposit_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=20)
         # Edit deposit button
-        self.edit_deposit_button = ttk.Button(deposit_frame, text='Editar aportes realizados a fondo',
+        self.edit_deposit_button = ttk.Button(deposit_frame, text='Editar/eliminar aportes realizados',
                                               style='my.TButton', command=self.edit_deposit_window)
         self.edit_deposit_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W + E, padx=20, ipadx=20)
         # Delete deposit button
-        self.del_deposit_button = ttk.Button(deposit_frame, text='Eliminar aporte realizado a fondo', style='my.TButton')
-        self.del_deposit_button.grid(row=2, column=0, columnspan=self.COLUMNSPAN, sticky=W + E, padx=20)
 
         # Frame for operating with the 'Visualizations'
         visu_frame = LabelFrame(self.main_window, text='Opciones de visualizacion', font=self.LABEL_FONT, labelanchor=N)
@@ -84,7 +82,7 @@ class Fund():
                                           command=self.add_fund_window)
         self.add_fund_button.grid(row=0, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20, ipadx=25)
         # Edit fund button
-        self.edit_fund_button = ttk.Button(fund_frame, text='Editar tabla del fondo', style='my.TButton',
+        self.edit_fund_button = ttk.Button(fund_frame, text='Editar nombre del fondo', style='my.TButton',
                                            command=self.edit_fund_window)
         self.edit_fund_button.grid(row=1, column=0, columnspan=self.COLUMNSPAN, sticky=W+E, padx=20)
         # Delete fund button
@@ -511,7 +509,7 @@ class Fund():
             #   parte del codigo que he creado para la otra funcion de plot. Tengo que tener cuidado con el width del
             #   plot
             print(fund_name)
-            plotted = None
+            plotted = plot_profits_per_fund(self.DB, fig, ax, fund_name, dates, visualization_options)
         else:
             message['fg'] = 'red'
             message['text'] = 'No se ha seleccionado una opción de visualización existente'
@@ -532,29 +530,31 @@ class Fund():
         # The last argument of the call is to offer the option to visualize the overall profits
         self.funds_to_plot = []
         fund_selection_button = ttk.Button(options_frame, text='Selección de fondos', style='my.TButton',
-                                 command=self.fund_selection)
+                                           command=lambda: self.fund_selection(message))
         fund_selection_button.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
-
-        # Init date
-        init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
-        init_date_label.grid(row=1, column=0, padx=5, sticky=E)
-        init_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
-                               width=self.DATE_WIDTH)
-        init_date_entry.grid(row=1, column=1, sticky=W, padx=self.ENTRY_PADX)
-        # End date
-        end_date_label = Label(options_frame, text='Fecha final:', font=self.LABEL_FONT)
-        end_date_label.grid(row=2, column=0, padx=5, sticky=E)
-        end_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
-                                    width=self.DATE_WIDTH)
-        end_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
 
         # Options for the plots
         # Percent
         percent_label = Label(options_frame, text='Forma de representación:', font=self.LABEL_FONT)
-        percent_label.grid(row=0, column=2, padx=5, sticky=E)
+        percent_label.grid(row=1, column=0, padx=5, sticky=E)
         percent_entry = ttk.Combobox(options_frame, values=OPTIONS_FOR_PERCENT, state='readonly', style='my.TCombobox')
-        percent_entry.grid(row=0, column=3, padx=5, ipadx=12, sticky=E)
+        percent_entry.grid(row=1, column=1, padx=self.ENTRY_PADX, sticky=W)
         percent_entry.current(0)
+
+        # Init date
+        init_date_label = Label(options_frame, text='Fecha inicial:', font=self.LABEL_FONT)
+        init_date_label.grid(row=2, column=0, padx=5, sticky=E)
+        init_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                               width=self.DATE_WIDTH)
+        init_date_entry.grid(row=2, column=1, sticky=W, padx=self.ENTRY_PADX)
+        # End date
+        end_date_label = Label(options_frame, text='Fecha final:', font=self.LABEL_FONT)
+        end_date_label.grid(row=3, column=0, padx=5, sticky=E)
+        end_date_entry = DateEntry(options_frame, selectmode='day', date_pattern='yyyy-mm-dd', state='readonly',
+                                    width=self.DATE_WIDTH)
+        end_date_entry.grid(row=3, column=1, sticky=W, padx=self.ENTRY_PADX)
+
+
 
         # Frame for the message
         message_frame = Frame(window)
@@ -583,9 +583,9 @@ class Fund():
                                                    visualization_options ={'percentage': percent_entry.get()}
                                                    )
                                  )
-        plot_button.grid(row=3, columnspan=4, ipadx=80, pady=5)
+        plot_button.grid(row=4, columnspan=2, ipadx=80, pady=5)
 
-    def fund_selection(self):
+    def fund_selection(self, message):
         # Create new window
         window = self.new_window('Seleccione fondos a visualizar')
         # Initialize list that will move info between functions
@@ -603,7 +603,8 @@ class Fund():
         save_button = ttk.Button(frame_save_button, text='Guardar selección', style='my.TButton',
                                  command=lambda : self.save_fund_selection_options(list_of_checkbuttons,
                                                                                    list_of_vars,
-                                                                                   window)
+                                                                                   window,
+                                                                                   message)
                                  )
         save_button.pack(anchor='center')
 
@@ -616,13 +617,15 @@ class Fund():
             list_of_checkbuttons[-1].grid(row=index // 2, column=index % 2, padx=5, pady=5, ipadx=15, sticky='WE')
             list_of_vars.append(var)
 
-    def save_fund_selection_options(self, list_of_checkbuttons: list, list_of_vars: list, window: Toplevel):
+    def save_fund_selection_options(self, list_of_checkbuttons: list, list_of_vars: list, window: Toplevel,
+                                    message: Label):
         for index, intvar in enumerate(list_of_vars):
             if intvar.get() == 1:
                 self.funds_to_plot.append(list_of_checkbuttons[index].cget('text'))
         print(self.funds_to_plot)
         window.destroy()
-
+        message['fg'] = 'black'
+        message['text'] = f'Fondos seleccionados: {list_to_string(self.funds_to_plot)}'
 
 
     # Functions of the fund frame #

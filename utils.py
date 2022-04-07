@@ -5,7 +5,6 @@ import requests
 import random
 from bs4 import BeautifulSoup
 from tkinter import *
-from datetime import datetime
 
 
 # Functions related to the database
@@ -22,7 +21,7 @@ def query_db(db, query, params=None):
         params = ()
     else:
         assert isinstance(params, (list, tuple))
-    with sqlite3.connect(db, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES) as connection:
+    with sqlite3.connect(db) as connection:
         cursor = connection.cursor()
         result = cursor.execute(query, params)
         connection.commit()
@@ -156,6 +155,16 @@ def parse_deposits(query_object: sqlite3.Cursor) -> list:
         deposits.append(element)
     return deposits
 
+
+def list_to_string(list_of_str: list) -> str:
+    strng = ''
+    for index, item in enumerate(list_of_str):
+        strng += item
+        if index == len(list_of_str)-1:
+            strng += '.'
+        else:
+            strng += ', '
+    return strng
 
 # Validation functions
 
