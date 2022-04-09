@@ -88,12 +88,18 @@ def add_value_label(ax: plt.Axes, x_list, y_list):
         ax.text(i, y_list[i-1]/2, f'{y_list[i-1]:.2f}%', ha="center")
 
 
-def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualization_options=None) -> bool:
+def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualization_options=None) -> bool or list:
     # Clear plot
     ax.cla()
+    not_plotted = [] # To store which of the funds could not be plotted
     funds_balances = []
-    for fund in fund_names:
+    for index, fund in enumerate(fund_names):
         deposits = get_deposits_of_a_fund(db, fund, dates)
+        # If no deposits were made to the fund in the specified dates, the name is stored for showing a warning
+        # message and code goes to next iteration
+        if len(deposits) == 0:
+            not_plotted.append(fund)
+            continue
         #               [0] [1]      [2]        [3]             [4]
         # DB structure: Id, Date, Deposit, Participations, Participation value
         current_participation_value = get_fund_value(fund)
@@ -113,10 +119,24 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
         else:
             funds_balances.append(balance)
             fig.suptitle('Rentabilidades')
+    # In case there is no deposits for any of the funds, don't plot anything
+    if len(funds_balances) == 0:
+        return not_plotted
+    # Pop names that are not going to be plotted
+    for i in not_plotted:
+        fund_names.remove(i)
     # Create a list with the colors for the plot, green if +, red if -
     plot_colors = list_of_colors_for_barplot(funds_balances)
     # Plot
-    bar_container = ax.bar([x for x in range(len(funds_balances))], funds_balances,
+    print(fund_names)
+    print(funds_balances)
+    # To handle the event of only having one bar, we plot two empty bars
+    if len(fund_names) == 1:
+        funds_balances = [0, funds_balances[0], 0]
+        bar_container = ax.bar([0, 1, 2], funds_balances, width=0.65, tick_label=['', fund_names[0], ''],
+                               color=['black', plot_colors[0], 'black'])
+    else:
+        bar_container = ax.bar([x for x in range(len(funds_balances))], funds_balances,
                            width=0.65, tick_label=fund_names, color=plot_colors)
     # Plot the value inside the bars of the plot, distinguishing between percentage and abs value
     if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
@@ -127,11 +147,14 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
     else:
         ax.bar_label(bar_container, labels=[f'{x:.2f}\N{euro sign}' for x in funds_balances],
                      label_type='center', rotation=0, fontsize=9)
-        ax.title(f'Rentabilidad total entre los {len(funds_balances)} fondos \u2191 {sum(funds_balances)}')
+        ax.set_title(f'Rentabilidad total entre los fondos'
+                     f' \u2192 {sum(funds_balances):.3f} \N{euro sign}', y=0.995)
     # Plot a horizontal gray bar in the 0 value
     ax.axhline(color='dimgray')
     # Returns True to confirm that the graphic was plotted
-    return True
+    if not_plotted == []:
+        not_plotted = True
+    return not_plotted
 
 
 

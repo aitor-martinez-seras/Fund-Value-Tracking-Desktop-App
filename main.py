@@ -134,8 +134,8 @@ class Fund():
         except ValueError:
             mensaje['fg'] = 'red'
             mensaje['text'] = 'Datos introducidos incorrectos, el aporte no ha sido creado'
-            deposit_entry.delete(0,END)
-            participations_entry.delete(0,END)
+            deposit_entry.delete(0, END)
+            participations_entry.delete(0, END)
             return
         # To check whether the inputs can be inserted into the database
         if validate_date(date) and validate_name(fund) and validate_number(deposit) and validate_number(participations):
@@ -222,7 +222,7 @@ class Fund():
         update_button.grid(row=0, column=0, padx=20)
 
         clear_button = ttk.Button(
-            buttons_frame, text='Limpiar registros', style='my.TButton',
+            buttons_frame, text='Limpiar campos', style='my.TButton',
             command=lambda: self.clear_boxes(id_string, date_box, deposit_box, participation_box, value_box)
         )
         clear_button.grid(row=0, column=1, padx=20)
@@ -419,7 +419,7 @@ class Fund():
         fund_label = Label(options_frame, text='Seleccione el fondo:', font=self.LABEL_FONT)
         fund_label.grid(row=0, column=0, padx=5, sticky=E)
         # The last argument of the call is to offer the option to visualize the overall profits
-        fund_entry = self.dropdown_menu(options_frame, 'Todos')
+        fund_entry = self.dropdown_menu(options_frame)
         fund_entry.grid(row=0, column=1, padx=self.ENTRY_PADX, sticky=W)
         funds = get_available_funds(self.DB)
 
@@ -505,10 +505,6 @@ class Fund():
         if option == 'Per deposit':
             plotted = plot_profits_per_deposit(self.DB, fig, ax, fund_name, dates, visualization_options)
         elif option == 'Fund_value':
-            # TODO: Ya soy capaz de recibir los nombres, ahora tengo que hacer la funcion que genera el plot, reciclando
-            #   parte del codigo que he creado para la otra funcion de plot. Tengo que tener cuidado con el width del
-            #   plot
-            print(fund_name)
             plotted = plot_profits_per_fund(self.DB, fig, ax, fund_name, dates, visualization_options)
         else:
             message['fg'] = 'red'
@@ -517,6 +513,15 @@ class Fund():
 
         if plotted is True:
             create_plot(canvas, toolbar)
+        elif isinstance(plotted, list) and len(plotted) != 0:
+            create_plot(canvas, toolbar)
+            message['fg'] = 'orange'
+            message['text'] = f'No existen datos para las fechas seleccionadas de los siguientes fondos: ' \
+                              f' {list_to_string(plotted)}'
+        else:
+            message['fg'] = 'red'
+            message['text'] = f'No existen datos para las fechas seleccionadas de los siguientes fondos: ' \
+                              f' {list_to_string(plotted)}'
 
     def profits_per_fund_window(self):
         # Create the window
@@ -619,6 +624,7 @@ class Fund():
 
     def save_fund_selection_options(self, list_of_checkbuttons: list, list_of_vars: list, window: Toplevel,
                                     message: Label):
+        self.funds_to_plot = []
         for index, intvar in enumerate(list_of_vars):
             if intvar.get() == 1:
                 self.funds_to_plot.append(list_of_checkbuttons[index].cget('text'))
