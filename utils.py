@@ -31,9 +31,9 @@ def query_db(db, query, params=None):
 def create_deposit(db, entries):
     query = f'''INSERT INTO {entries['fund']} 
                 VALUES (NULL, ?, ?, ?, ?)'''
-    # The value of each participation at the time of the deposit
-    participation_value = entries['deposit'] / entries['participations']
-    parameters = (entries['date'], entries['deposit'], entries['participations'], participation_value)
+    # The value of each share at the time of the deposit
+    participation_value = entries['deposit'] / entries['shares']
+    parameters = (entries['date'], entries['deposit'], entries['shares'], participation_value)
     query_db(db, query, parameters)
     return
 
@@ -46,7 +46,7 @@ def edit_deposit(db, entries):
                     Valor_participacion = ? 
                 WHERE Id = ?"""
     query_db(db, query, params=(entries['date'], entries['deposit'],
-                                entries['participations'], entries['value'], entries['id']))
+                                entries['shares'], entries['value'], entries['id']))
 
 
 def delete_record_from_db(db, fund, id_string):
@@ -131,25 +131,11 @@ def get_deposits_of_a_fund(db, fund_name, dates=None):
 
 def parse_deposits(query_object: sqlite3.Cursor) -> list:
     """
-    Creates a dict of list where each key is a column of the list is one row of the table
+    Creates a list where each item is a list with elements one row of the table, with the format
+    [Id, Date, Deposit, Participations, Participation value]
     :param query_object:
     :return:
     """
-    '''
-    deposits = {
-        'Id': [],
-        'Fecha': [],
-        'Aporte': [],
-        'Participaciones': [],
-        'Valor_participacion': []
-    }
-    for element in query_object:
-        deposits['Id'].append(element[0])
-        deposits['Fecha'].append(element[1])
-        deposits['Aporte'].append(element[2])
-        deposits['Participaciones'].append(element[3])
-        deposits['Valor_participacion'].append(element[4])
-    '''
     deposits = []
     for element in query_object:
         deposits.append(element)
@@ -166,12 +152,13 @@ def list_to_string(list_of_str: list) -> str:
             strng += ', '
     return strng
 
+
 # Validation functions
 
 def validate_name(name: str):
     """
     Checks that the introduced value is not only numeric, is nonzero,
-has no spaces in it and that length is not superior to 30
+    has no spaces in it and that length is not superior to 30
     :param name: String
     :return: True if valid
     """
@@ -199,15 +186,15 @@ def parse_date_to_datetime(date):
 
 
 def parse_dates_to_linspace(dates):
-    new_dates = [datetime.strptime(item, '%Y-%m-%d') for item in dates]
+    new_dates = [datetime.datetime.strptime(item, '%Y-%m-%d') for item in dates]
     oldest_date = new_dates[0].timestamp()
     dates_linspace = [round((item.timestamp() - oldest_date)/(60*60*24*7*2), 3) for item in new_dates]
     return dates_linspace
 
 
 def parse_num_with_commas_for_decimals(num: str):
-    num = num.replace('.','')
-    num = num[::-1].replace(',','.',1)
+    num = num.replace('.', '')
+    num = num[::-1].replace(',', '.', 1)
     return num[::-1]
 
 # Scrapping functions
@@ -216,7 +203,7 @@ def get_fund_value(fund_name):
     """
     Obtains the value of the fund calling the web scrapping functions
     :param fund_name: String with the name of the fund, must match one on the dictionary on the constants.py
-    :return: value of one participation of the fund
+    :return: value of one share of the fund
     """
     if fund_name in FUNDS_WEB_PAGES.keys():
         web_page = FUNDS_WEB_PAGES[fund_name]
@@ -233,12 +220,13 @@ def scrape_investing_dot_com(fund_web_page):
     :param fund_name:
     :return:
     """
-    # Future headers may need to be added
-    # This function needs a lot of exception preventing code
+    # Future headers may need to be added. Their allow the request to get the content, otherwise it gets blocked
     page = requests.get(
         fund_web_page,
         headers={'User-Agent': random.choice(USER_AGENTS)})
+    # Parse HTML to a friendly format
     soup = BeautifulSoup(page.text, 'html.parser')
+    # Code to find the fund share
     fund_value = soup.find(id="last_last").text
     try:
         fund_value = float(parse_num_with_commas_for_decimals(fund_value))

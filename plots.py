@@ -8,10 +8,10 @@ from utils import get_deposits_of_a_fund, parse_dates_to_linspace, get_fund_valu
 from constants import *
 
 
-def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualization_options=None) -> bool:
+def plot_profits_per_deposit(db: str, fig: plt.Figure, ax: plt.Axes, fund_name: str or list,
+                             dates: dict, visualization_options=None) -> bool:
     """
-
-    :return:
+    Wraps the logic to plot the profits per deposit and returns a True if the plot was correctly executed
     """
     ax.cla()
     deposits = get_deposits_of_a_fund(db, fund_name, dates)
@@ -20,22 +20,22 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
         return False
     else:
         # DB structure: Id, Date, Deposit, Participations, Participation value
-        current_participation_value = get_fund_value(fund_name)
-        print(current_participation_value)
+        current_share_value = get_fund_value(fund_name)
+        print(current_share_value)
         value_per_deposit = []
         dates = []
 
         if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
             for item in deposits:
-                # (current_participation_value - Participation_value) = win or loss per participation i.e. the
-                # difference between each participation current value and the value paid for it
-                value_per_deposit.append(((current_participation_value - float(item[4])) / float(item[4])) * 100)
+                # (current_share_value - Participation_value) = win or loss per share i.e. the
+                # difference between each share current value and the value paid for it
+                value_per_deposit.append(((current_share_value - float(item[4])) / float(item[4])) * 100)
                 dates.append(item[1])
             fig.suptitle('Rentabilidades en procentaje')
         else:
             for item in deposits:
-                # item[2] to mulitply the win or loss per participation with the number of participations
-                value_per_deposit.append(item[2] * ((current_participation_value - float(item[4])) / float(item[4])))
+                # item[2] to mulitply the win or loss per share with the number of shares
+                value_per_deposit.append(item[2] * ((current_share_value - float(item[4])) / float(item[4])))
                 dates.append(item[1])
             fig.suptitle('Rentabilidades')
 
@@ -55,7 +55,6 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
             #ax.set_xticklabels()
 
         if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
-            #add_value_label(ax, dates, value_per_deposit)
             ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
             ax.bar_label(bar_container, labels=[f'{x:.2f}%' for x in value_per_deposit],
                          label_type='center', rotation=0, fontsize=9)
@@ -68,7 +67,11 @@ def plot_profits_per_deposit(db, fig, ax: plt.Axes, fund_name, dates, visualizat
         # Returns True to confirm that the graphic was plotted
         return True
 
+
 def list_of_colors_for_barplot(values_list) -> list:
+    """
+    Returns a list of colors to assign to the bars that will be plot, green if benefits, red if losses
+    """
     color_list = []
     for value in values_list:
         if value < 0:
@@ -83,12 +86,12 @@ def major_formatter(x, pos):
     return f'[{x:.2f}]'
 
 
-def add_value_label(ax: plt.Axes, x_list, y_list):
-    for i in range(1, len(x_list)+1):
-        ax.text(i, y_list[i-1]/2, f'{y_list[i-1]:.2f}%', ha="center")
-
-
-def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualization_options=None) -> bool or list:
+def plot_profits_per_fund(db: str, fig: plt.Figure, ax: plt.Axes, fund_names: str or list,
+                          dates: dict, visualization_options: dict) -> bool or list:
+    """
+    Wraps the logic to plot the profits per fund and returns a True if the plot was correctly executed or a list with the
+    plots that could not be plotted if there are some
+    """
     # Clear plot
     ax.cla()
     not_plotted = [] # To store which of the funds could not be plotted
@@ -102,15 +105,15 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
             continue
         #               [0] [1]      [2]        [3]             [4]
         # DB structure: Id, Date, Deposit, Participations, Participation value
-        current_participation_value = get_fund_value(fund)
-        print(current_participation_value)
+        current_share_value = get_fund_value(fund)
+        print(current_share_value)
         money_spent_on_fund = 0.0
-        sum_of_participations = 0.0
+        sum_of_shares = 0.0
         for item in deposits:
             money_spent_on_fund += float(item[2])
-            sum_of_participations += float(item[3])
-        # Calculate the fund current value as the number of participations times the current value of one participation
-        fund_current_value = sum_of_participations * current_participation_value
+            sum_of_shares += float(item[3])
+        # Calculate the fund current value as the number of shares times the current value of one share
+        fund_current_value = sum_of_shares * current_share_value
         balance = fund_current_value - money_spent_on_fund
         if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
             # Transform balance into percentage
@@ -127,9 +130,6 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
         fund_names.remove(i)
     # Create a list with the colors for the plot, green if +, red if -
     plot_colors = list_of_colors_for_barplot(funds_balances)
-    # Plot
-    print(fund_names)
-    print(funds_balances)
     # To handle the event of only having one bar, we plot two empty bars
     if len(fund_names) == 1:
         funds_balances = [0, funds_balances[0], 0]
@@ -140,7 +140,6 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
                            width=0.65, tick_label=fund_names, color=plot_colors)
     # Plot the value inside the bars of the plot, distinguishing between percentage and abs value
     if visualization_options['percentage'] == OPTIONS_FOR_PERCENT[0]:
-        # add_value_label(ax, dates, value_per_deposit)
         ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
         ax.bar_label(bar_container, labels=[f'{x:.2f}%' for x in funds_balances],
                      label_type='center', rotation=0, fontsize=9)
@@ -155,9 +154,6 @@ def plot_profits_per_fund(db, fig, ax: plt.Axes, fund_names, dates, visualizatio
     if not_plotted == []:
         not_plotted = True
     return not_plotted
-
-
-
 
 
 def create_plot(canvas: FigureCanvasTkAgg, toolbar: NavigationToolbar2Tk):
