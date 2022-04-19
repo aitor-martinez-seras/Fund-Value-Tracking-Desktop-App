@@ -1,3 +1,4 @@
+DATABASE_PATH = 'database/FundStatus.db'
 DB_COLUMNS = ['Id', 'Fecha', 'Aporte', 'Participaciones', 'Valor_participacion']
 FUNDS_WEB_PAGES = {
     'Kutxabank_fondo': 'https://es.investing.com/funds/kutxabank-gestion-activa-rendimient',

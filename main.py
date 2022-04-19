@@ -1,7 +1,3 @@
-import tkinter
-
-import numpy as np
-
 from utils import *
 from plots import *
 from tkinter import *
@@ -9,19 +5,14 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
-# Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
-
-import time
 from tkcalendar import DateEntry
-from collections import abc
-from datetime import datetime
+
 
 class Fund():
     """
-    Clase base para crear la vetana principal
+    Base class where all the GUI is going to be implemented
     """
-    DB = 'database/FundStatus.db'
+    DB = DATABASE_PATH
     COLUMNSPAN = 2
     MAIN_FONT = 'Malgun Gothic Semilight'
     LABEL_FONT = 'Calibri'
@@ -738,12 +729,13 @@ class Fund():
         """
         Sets the passed Combobox values to the funds
         :param args: str or list of strings with values that we want to add to the ComboBox dropdown menu
-        :return:
         """
         combobox['values'] = list(args) + get_available_funds(self.DB)
 
 
 if __name__ == '__main__':
+    # Creates the .db file in case it does not exist in the DATABASE_PATH of the constants.py file
+    create_db_file()
     root = Tk()
     app = Fund(root)
     root.mainloop()

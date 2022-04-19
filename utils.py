@@ -1,13 +1,23 @@
 import sqlite3
+from pathlib import Path
 from constants import *
 import datetime
 import requests
 import random
 from bs4 import BeautifulSoup
-from tkinter import *
 
 
 # Functions related to the database
+
+def create_db_file():
+    """
+    Creates the .db file in the DATABASE_PATH in case it does not exist
+    """
+    db_path = Path(Path.cwd()) / DATABASE_PATH
+    if not db_path.exists():
+        with open(db_path, 'w') as e:
+            print(f'Creada nueva base de datos en {db_path}')
+
 
 def query_db(db, query, params=None):
     '''
