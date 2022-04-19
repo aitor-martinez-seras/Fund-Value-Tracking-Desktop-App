@@ -59,7 +59,6 @@ def plot_profits_per_deposit(db: str, fig: plt.Figure, ax: plt.Axes, fund_name: 
             ax.bar_label(bar_container, labels=[f'{x:.2f}%' for x in value_per_deposit],
                          label_type='center', rotation=0, fontsize=9)
         else:
-            ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=100))
             ax.bar_label(bar_container, labels=[f'{x:.2f}\N{euro sign}' for x in value_per_deposit],
                          label_type='center', rotation=0, fontsize=9)
         # Plot a horizontal gray bar in the 0 value
